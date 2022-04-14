@@ -3,7 +3,7 @@
 /*
 Plugin Name: Rpi Material Input Template
 Plugin URI: https://github.com/rpi-virtuell/rpi-material-input-template
-Description: A brief description of the Plugin.
+Description: Wordpress Plugin to ADD material post type and template
 Version: 1.0
 Author: Daniel Reintanz
 Author URI: https://github.com/FreelancerAMP
@@ -15,7 +15,7 @@ class RpiMaterialInputTemplate
     function __construct()
     {
         add_action('init', array($this, 'register_custom_post_type'));
-        add_action('init' , array($this, 'register_block_template') );
+        add_action('init', array($this, 'register_block_template'));
     }
 
     public function register_custom_post_type()
@@ -51,28 +51,37 @@ class RpiMaterialInputTemplate
             "can_export" => false,
             "rewrite" => ["slug" => "materialien", "with_front" => true],
             "query_var" => true,
-            "supports" => [ "title",
-                            "editor",
-                            "thumbnail",
-                            'excerpt',
-                            'tracksbacks',
-                            'custom-fields',
-                            'comments',
-                            'page-attributes',
-                            'post-formats'],
+            "supports" => ["title",
+                "editor",
+                "thumbnail",
+                'excerpt',
+                'tracksbacks',
+                'custom-fields',
+                'comments',
+                'page-attributes',
+                'post-formats'],
             "show_in_graphql" => false,
         ];
 
         register_post_type("materialien", $args);
     }
 
-    public function register_block_template(){
+    public function register_block_template()
+    {
         $post_type_object = get_post_type_object('materialien');
+
         $post_type_object->template = array(
-            array('lazyblocks/Test frage mit anderem svg')
+
+//            array('lazyblock/tab-leitfrage', array(), array( array('core/columns', array() , array(array('core/column'))) ) ),
+
+            array('lazyblock/tab-leitfrage', array(), array( array('kadence/column')) )
+
         );
 
+
+        $post_type_object->template_lock = 'all';
     }
 
 }
+
 new RpiMaterialInputTemplate();
