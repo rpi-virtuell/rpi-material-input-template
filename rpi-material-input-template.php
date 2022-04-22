@@ -15,7 +15,8 @@ class RpiMaterialInputTemplate
     function __construct()
     {
         add_action('init', array($this, 'register_custom_post_type'));
-        add_action('init', array($this, 'register_block_template'));
+        add_action('init', array($this, 'register_gravity_form'));
+        add_action('gform_post_submission', array($this, 'add_template_and_redirect'), 10, 2);
     }
 
     public function register_custom_post_type()
@@ -66,20 +67,38 @@ class RpiMaterialInputTemplate
         register_post_type("materialien", $args);
     }
 
-    public function register_block_template()
+    public function register_gravity_form()
     {
-        $post_type_object = get_post_type_object('materialien');
+// TODO:: DEBUG resource to create inmport file
+//        $form = GFAPI::get_form(1);
+//       file_put_contents(__DIR__.'/form.dat', serialize($form));
 
-        $post_type_object->template = array(
+        global $wpdb;
+        $form_title = 'materialeingabe';
+        $formssql = "SELECT ID FROM {$wpdb->prefix}gf_form WHERE title = %s and is_trash = 0;";
+        if (empty($formId = $wpdb->get_var($wpdb->prepare($formssql, $form_title)))) {
+            $form = unserialize(file_get_contents(__DIR__ . '/form.dat'));
+            $formId = GFAPI::add_form($form);
+        }
 
-//            array('lazyblock/tab-leitfrage', array(), array( array('core/columns', array() , array(array('core/column'))) ) ),
-
-            array('lazyblock/tab-leitfrage', array(), array( array('kadence/column')) )
-
-        );
+    }
 
 
-        $post_type_object->template_lock = 'all';
+    function add_template_and_redirect($entry, $form)
+    {
+        $post = get_post($entry['post_id']);
+        if (is_a($post, 'WP_Post')) {
+            $terms = wp_get_post_terms($post->ID, 'materialtype');
+            foreach ($terms as $term) {
+                if (is_a($term, 'WP_Term')) {
+                    $post->post_content = file_get_contents(__DIR__ . '/templates/' . $term->slug . '.php');
+
+                }
+                wp_update_post($post);
+            }
+        }
+        wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
+        exit();
     }
 
 }
