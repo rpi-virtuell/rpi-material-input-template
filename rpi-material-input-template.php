@@ -69,7 +69,7 @@ class RpiMaterialInputTemplate
 
     public function register_gravity_form()
     {
-// TODO:: DEBUG resource to create inmport file
+// TODO:: DEBUG resource to create importable file for Gravity Forms
 //        $form = GFAPI::get_form(1);
 //       file_put_contents(__DIR__.'/form.dat', serialize($form));
 
@@ -91,8 +91,16 @@ class RpiMaterialInputTemplate
             $terms = wp_get_post_terms($post->ID, 'materialtype');
             foreach ($terms as $term) {
                 if (is_a($term, 'WP_Term')) {
-                    $post->post_content = file_get_contents(__DIR__ . '/templates/' . $term->slug . '.php');
-
+                    $templateposts = get_posts(
+                        array(
+                            'post_type' => 'materialtyp_template',
+                            'tax_query' => array('taxonomy' => 'materialtype', 'field' => 'slug', 'term' => $term->slug))
+                    );
+                    $template = reset($templateposts);
+                    if ($template && is_a($template, 'WP_Post'))
+                    {
+                        $post->post_content = $template->post_content;
+                    }
                 }
                 wp_update_post($post);
             }
@@ -100,7 +108,6 @@ class RpiMaterialInputTemplate
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
         exit();
     }
-
 }
 
 new RpiMaterialInputTemplate();
