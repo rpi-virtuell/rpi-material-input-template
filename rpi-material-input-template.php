@@ -10,18 +10,23 @@ Author URI: https://github.com/FreelancerAMP
 License: A "Slug" license name e.g. GPL2
 */
 
+require_once('rpi-material-allowed-blocks.php');
+
 class RpiMaterialInputTemplate
 {
     function __construct()
     {
+        add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_acf_fields'));
+        add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_template_settings_options_page'));
         add_action('init', array($this, 'register_custom_post_type'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('gform_post_submission', array($this, 'add_template_and_redirect'), 10, 2);
+        add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
+        add_action('admin_head', array($this, 'supply_option_data_to_js'));
     }
 
     public function register_custom_post_type()
     {
-
         /**
          * Post Type: Material.
          */
@@ -69,9 +74,9 @@ class RpiMaterialInputTemplate
 
     public function register_gravity_form()
     {
-// TODO:: DEBUG resource to create importable file for Gravity Forms
-//        $form = GFAPI::get_form(1);
-//       file_put_contents(__DIR__.'/form.dat', serialize($form));
+//             TODO:: DEBUG resource to create importable file for Gravity Forms
+//                    $form = GFAPI::get_form(1);
+//                   file_put_contents(__DIR__.'/form.dat', serialize($form));
 
         global $wpdb;
         $form_title = 'materialeingabe';
@@ -97,8 +102,7 @@ class RpiMaterialInputTemplate
                             'tax_query' => array('taxonomy' => 'materialtype', 'field' => 'slug', 'term' => $term->slug))
                     );
                     $template = reset($templateposts);
-                    if ($template && is_a($template, 'WP_Post'))
-                    {
+                    if ($template && is_a($template, 'WP_Post')) {
                         $post->post_content = $template->post_content;
                     }
                 }
@@ -107,6 +111,33 @@ class RpiMaterialInputTemplate
         }
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
         exit();
+    }
+
+    function blockeditor_js()
+    {
+        if (!is_admin()) return;
+        wp_enqueue_script(
+            'template_handling',
+            plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js'
+        );
+    }
+
+    public function supply_option_data_to_js()
+    {
+        $allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
+        $post_type = json_encode(get_field('template_post_type', 'option'));
+        
+        echo
+        "<script>
+                const rpi_material_input_template = 
+                {
+                    options:
+                    {
+                        allowed_blocks: JSON.parse('$allowed_block_types'),
+                        post_type: '$post_type'
+                    }
+                }
+        </script>";
     }
 }
 
