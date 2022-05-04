@@ -71,9 +71,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                 for (block of blocks) {
                     delete block.attributes.lock;
                     delete block.attributes.lock;
-
-                    delete block.supports.innerBlocks;
-                    delete block.supports.inserter
                 }
                 return;
             }
