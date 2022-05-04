@@ -91,23 +91,59 @@ class RpiMaterialInputTemplate
 
     function add_template_and_redirect($entry, $form)
     {
+
+
         $post = get_post($entry['post_id']);
         if (is_a($post, 'WP_Post')) {
+
             $terms = wp_get_post_terms($post->ID, 'materialtype');
-            foreach ($terms as $term) {
+
+			if (is_a($terms[0], 'WP_Term')){
+
+		        $templateposts = get_posts(
+			        array(
+				        'post_status'=>'publish',
+				        'post_type' => 'materialtyp_template',
+				        'name' => $terms[0]->slug
+			        ));
+		        $template = reset($templateposts);
+
+		        if ($template && is_a($template, 'WP_Post')) {
+			        $post->post_content = $template->post_content;
+			        wp_update_post($post);
+
+		        }
+	        }
+
+
+
+
+	       /* foreach ($terms as $term) {
                 if (is_a($term, 'WP_Term')) {
-                    $templateposts = get_posts(
+
+					$templateposts = get_posts(
                         array(
+	                        'post_status'=>'publish',
+							'numberposts'=>1,
                             'post_type' => 'materialtyp_template',
-                            'tax_query' => array('taxonomy' => 'materialtype', 'field' => 'slug', 'term' => $term->slug))
+                            'tax_query' => array(
+								'taxonomy'  => 'materialtype',
+						        'field'     => 'slug',
+						        'terms'      => array($term->slug),
+								'operator' => 'IN'
+
+                            )
+                        )
                     );
-                    $template = reset($templateposts);
+	                $template = reset($templateposts);
                     if ($template && is_a($template, 'WP_Post')) {
                         $post->post_content = $template->post_content;
+	                    wp_update_post($post);
+
                     }
                 }
-                wp_update_post($post);
-            }
+
+            }*/
         }
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
         exit();
@@ -126,7 +162,7 @@ class RpiMaterialInputTemplate
     {
         $allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
-        
+
         echo
         "<script>
                 const rpi_material_input_template = 
