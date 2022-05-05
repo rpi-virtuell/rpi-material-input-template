@@ -14,15 +14,48 @@ require_once('rpi-material-allowed-blocks.php');
 
 class RpiMaterialInputTemplate
 {
+
+    private $allowed_block_types;
+
     function __construct()
     {
+        $this->allowed_block_types = array();
         add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_acf_fields'));
         add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_template_settings_options_page'));
         add_action('init', array($this, 'register_custom_post_type'));
         add_action('init', array($this, 'register_gravity_form'));
-        add_action('gform_post_submission', array($this, 'add_template_and_redirect'), 10, 2);
+        add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
         add_action('admin_head', array($this, 'supply_option_data_to_js'));
+
+        add_action('admin_init', array($this, 'check_for_broken_blocks'));
+
+        add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
+        add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
+        add_filter('gform_pre_submission_filter', array($this, 'add_template_selectbox_to_form'));
+        add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
+    }
+
+    public function add_template_selectbox_to_form($form)
+    {
+
+        foreach ($form['fields'] as &$field) {
+            if ($field->type != 'checkbox') {
+                continue;
+            }
+            $materialtyp_templates = get_posts(
+                array(
+                    'post_type' => 'materialtyp_template',
+                    'numberposts' => -1
+                ));
+            $choices = array();
+            foreach ($materialtyp_templates as $materialtyp_template) {
+                $choices[] = array('text' => $materialtyp_template->post_title, 'value' => $materialtyp_template->ID);
+            }
+            $field->placeholder = 'In welchen Bereich fällt der Beitrag?';
+            $field->choices = $choices;
+        }
+        return $form;
     }
 
     public function register_custom_post_type()
@@ -74,8 +107,8 @@ class RpiMaterialInputTemplate
 
     public function register_gravity_form()
     {
-//             TODO:: DEBUG resource to create importable file for Gravity Forms
-//                    $form = GFAPI::get_form(1);
+////             TODO:: DEBUG resource to create importable file for Gravity Forms
+//                    $form = GFAPI::get_form(63);
 //                   file_put_contents(__DIR__.'/form.dat', serialize($form));
 
         global $wpdb;
@@ -91,61 +124,27 @@ class RpiMaterialInputTemplate
 
     function add_template_and_redirect($entry, $form)
     {
+        $template_ids = array();
 
+        foreach ($_POST as $input_key => $input_value) {
+            if (str_starts_with($input_key, 'input_9_')) {
+                $template_ids[] = $input_value;
+            }
+        }
 
         $post = get_post($entry['post_id']);
-        if (is_a($post, 'WP_Post')) {
-
-            $terms = wp_get_post_terms($post->ID, 'materialtype');
-
-			if (is_a($terms[0], 'WP_Term')){
-
-		        $templateposts = get_posts(
-			        array(
-				        'post_status'=>'publish',
-				        'post_type' => 'materialtyp_template',
-				        'name' => $terms[0]->slug
-			        ));
-		        $template = reset($templateposts);
-
-		        if ($template && is_a($template, 'WP_Post')) {
-			        $post->post_content = $template->post_content;
-			        wp_update_post($post);
-
-		        }
-	        }
-
-
-
-
-	       /* foreach ($terms as $term) {
-                if (is_a($term, 'WP_Term')) {
-
-					$templateposts = get_posts(
-                        array(
-	                        'post_status'=>'publish',
-							'numberposts'=>1,
-                            'post_type' => 'materialtyp_template',
-                            'tax_query' => array(
-								'taxonomy'  => 'materialtype',
-						        'field'     => 'slug',
-						        'terms'      => array($term->slug),
-								'operator' => 'IN'
-
-                            )
-                        )
-                    );
-	                $template = reset($templateposts);
-                    if ($template && is_a($template, 'WP_Post')) {
-                        $post->post_content = $template->post_content;
-	                    wp_update_post($post);
-
-                    }
+        if (is_a($post, 'WP_Post') && !empty($template_ids)) {
+            foreach ($template_ids as $template_id) {
+                $template = get_post($template_id);
+                if (is_a($template, 'WP_Post')) {
+                    $post->post_content .= $template->post_content;
                 }
-
-            }*/
+                wp_update_post($post);
+            }
         }
+
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
+        GFAPI::delete_entry($entry['id']);
         exit();
     }
 
@@ -160,7 +159,7 @@ class RpiMaterialInputTemplate
 
     public function supply_option_data_to_js()
     {
-        $allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
+        $this->allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
 
         echo
@@ -169,12 +168,41 @@ class RpiMaterialInputTemplate
                 {
                     options:
                     {
-                        allowed_blocks: JSON.parse('$allowed_block_types'),
+                        allowed_blocks: JSON.parse('$this->allowed_block_types'),
                         post_type: '$post_type'
                     }
                 }
         </script>";
     }
+
+    public function check_for_broken_blocks()
+    {
+        if (isset($_GET['post'], $_GET['action']) && $_GET['action'] === 'edit') {
+            $post = get_post($_GET['post']);
+            if (is_a($post, 'WP_Post') && $post->post_type == get_field('template_post_type', 'option')) {
+                $existing_blocks = array();
+                $this->allowed_block_types = get_field('allowed_block_types', 'option');
+                $blocks = parse_blocks($post->post_content);
+                foreach ($blocks as $block_key => $block) {
+                    if (!empty($block['blockName']) && !empty($this->allowed_block_types)) {
+                        if (in_array($block['blockName'], $this->allowed_block_types) && !in_array($block['blockName'], $existing_blocks)) {
+                            $existing_blocks[] = $block['blockName'];
+                            continue;
+                        }
+                        $existing_blocks[] = $block['blockName'];
+                        $blocks[$block_key]['blockName'] = 'lazyblock/reli-default-block';
+                        $blocks[$block_key]['attrs']['blockUniqueClass'] = 'lazyblock/reli-default-block-' . $block['attrs']['blockId'];
+
+                    }
+                }
+                $post->post_content = serialize_blocks($blocks);
+                wp_update_post($post);
+            }
+        }
+
+    }
+
+
 }
 
 new RpiMaterialInputTemplate();

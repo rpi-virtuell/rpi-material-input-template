@@ -38,42 +38,46 @@ class RpiMaterialAllowedBlocks
                 $choices['## ' . $block_Type_Module[0]] = '## ' . $block_Type_Module[0];
             }
 
-            $choices[$block_Type->name] = !empty($block_Type->title) ? $block_Type->title : $block_Type->name;
+            $choices[$block_Type->name] = !empty($block_Type->title) ? $block_Type->name : $block_Type->name . ' | ' . $block_Type->title;
             $default_value[] = $block_Type->name;
 
+        }
+
+        //TODO needs to be refactored =>  redundancy
+        $postTypes = get_post_types();
+        $type_choices = array();
+        $type_default_value = array();
+        foreach ($postTypes as $postType) {
+            $type_choices[$postType] = $postType;
+            $type_default_value[] = $postType;
         }
 
         if (function_exists('acf_add_local_field_group')) {
             acf_add_local_field_group(array(
                 'key' => 'group_template_post_type',
                 'title' => 'Templates anwenden auf Post Type',
-                'name' => 'template_post_type',
                 'fields' => array(
                     array(
                         'key' => 'field_template_post_type',
-                        'label' => 'Template Post type',
+                        'label' => 'Template Post Type',
                         'name' => 'template_post_type',
-                        'type' => 'post_type',
+                        'type' => 'select',
                         'instructions' => '',
-                        'required' => 1,
+                        'required' => 0,
                         'conditional_logic' => 0,
                         'wrapper' => array(
                             'width' => '',
                             'class' => '',
                             'id' => '',
                         ),
-                        'default_value' => 'materialien',
-                        'post_type_options' => '',
-                        'field_type' => 'select',
-                        'multiple' => 0,
+                        'choices' => $type_choices,
+                        'default_value' => $type_default_value,
                         'allow_null' => 0,
-                        'choices' => array(),
+                        'multiple' => 0,
                         'ui' => 0,
+                        'return_format' => 'value',
                         'ajax' => 0,
                         'placeholder' => '',
-                        'return_format' => 'value',
-                        'layout' => 'vertical',
-                        'other_choice' => 0,
                     ),
                 ),
                 'location' => array(
