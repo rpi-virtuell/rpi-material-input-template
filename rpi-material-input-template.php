@@ -14,8 +14,12 @@ require_once('rpi-material-allowed-blocks.php');
 
 class RpiMaterialInputTemplate
 {
+
+    private $allowed_block_types;
+
     function __construct()
     {
+        $this->allowed_block_types = array();
         add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_acf_fields'));
         add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_template_settings_options_page'));
         add_action('init', array($this, 'register_custom_post_type'));
@@ -23,6 +27,8 @@ class RpiMaterialInputTemplate
         add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
         add_action('admin_head', array($this, 'supply_option_data_to_js'));
+
+        add_action('admin_init', array($this, 'check_for_broken_blocks'));
 
         add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
@@ -138,7 +144,7 @@ class RpiMaterialInputTemplate
         }
 
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
-        GFAPI::delete_entry( $entry['id'] );
+        GFAPI::delete_entry($entry['id']);
         exit();
     }
 
@@ -153,7 +159,7 @@ class RpiMaterialInputTemplate
 
     public function supply_option_data_to_js()
     {
-        $allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
+        $this->allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
 
         echo
@@ -162,12 +168,41 @@ class RpiMaterialInputTemplate
                 {
                     options:
                     {
-                        allowed_blocks: JSON.parse('$allowed_block_types'),
+                        allowed_blocks: JSON.parse('$this->allowed_block_types'),
                         post_type: '$post_type'
                     }
                 }
         </script>";
     }
+
+    public function check_for_broken_blocks()
+    {
+        if (isset($_GET['post'], $_GET['action']) && $_GET['action'] === 'edit') {
+            $post = get_post($_GET['post']);
+            if (is_a($post, 'WP_Post') && $post->post_type == get_field('template_post_type', 'option')) {
+                $existing_blocks = array();
+                $this->allowed_block_types = get_field('allowed_block_types', 'option');
+                $blocks = parse_blocks($post->post_content);
+                foreach ($blocks as $block_key => $block) {
+                    if (!empty($block['blockName']) && !empty($this->allowed_block_types)) {
+                        if (in_array($block['blockName'], $this->allowed_block_types) && !in_array($block['blockName'], $existing_blocks)) {
+                            $existing_blocks[] = $block['blockName'];
+                            continue;
+                        }
+                        $existing_blocks[] = $block['blockName'];
+                        $blocks[$block_key]['blockName'] = 'lazyblock/reli-default-block';
+                        $blocks[$block_key]['attrs']['blockUniqueClass'] = 'lazyblock/reli-default-block-' . $block['attrs']['blockId'];
+
+                    }
+                }
+                $post->post_content = serialize_blocks($blocks);
+                wp_update_post($post);
+            }
+        }
+
+    }
+
+
 }
 
 new RpiMaterialInputTemplate();
