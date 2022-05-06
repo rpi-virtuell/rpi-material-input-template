@@ -244,7 +244,7 @@ class RpiMaterialInputTemplate
                             }
 	                        $data = implode(',',$attr);
 		                    $top = 0;
-                            if($i == 1){
+                            if($i < 4){
 	                            $top = 1;
 		                    }
 	                        echo '<li class="reli-inserter" data="'.$data.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.','.$top.')"></a> <span>'.$post->post_title.'</span></li>';
