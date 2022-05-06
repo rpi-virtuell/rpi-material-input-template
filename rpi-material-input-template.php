@@ -34,6 +34,10 @@ class RpiMaterialInputTemplate
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_submission_filter', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
+
+		//ajax
+	    add_action( 'wp_ajax_getTemplate', array( 'RpiMaterialInputTemplate','getTemplate' ));
+	    add_action( 'wp_ajax_getTemplates', array( 'RpiMaterialInputTemplate','getTemplates' ));
     }
 
     public function add_template_selectbox_to_form($form)
@@ -155,6 +159,10 @@ class RpiMaterialInputTemplate
             'template_handling',
             plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js'
         );
+	    wp_enqueue_style(
+		    'template_handling_style',
+		    plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.css'
+	    );
     }
 
     public function supply_option_data_to_js()
@@ -201,8 +209,60 @@ class RpiMaterialInputTemplate
         }
 
     }
+	function getTemplates(){
+		$posts = get_posts([
+			'post_status' => 'publish',
+			'post_type'=> 'materialtyp_template',
+            'numberposts' => 10,
+			'orderby' => 'meta_value_num post_id'
 
+		]);
+        if($posts && count($posts)===0){
+            echo '';
+            die();
+        }
 
+		?>
+        <hr/>
+        <div class="controll-panel">
+		    <div class="block-editor-block-inspector" style="margin-left: 20px">
+
+                <h2 class="components-panel__body-title">Materialvorlage ändern</h2>
+                <div>
+                    <p>Was soll in deinem Material vorkommen?</p>
+                    <ul><?php
+                        $i = 0;
+	                    foreach ($posts as $post){
+                            $i ++;
+                            $blocks = parse_blocks($post->post_content);
+		                    $attr = [];
+                            foreach ($blocks as  $block){
+
+                                if(strpos($block['blockName'], "lazyblock/reli")!==false){
+	                                $attr[] = $block['blockName'];
+                                }
+                            }
+	                        $data = implode(',',$attr);
+		                    $top = 0;
+                            if($i == 1){
+	                            $top = 1;
+		                    }
+	                        echo '<li class="reli-inserter" data="'.$data.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.','.$top.')"></a> <span>'.$post->post_title.'</span></li>';
+                        }
+                        ?>
+                    </ul>
+                </div>
+            </div>
+		</div>
+		<?php
+		die();
+	}
+	function getTemplate(){
+		$post_id = $_GET['id'];
+		$post = get_post($post_id);
+		echo $post->post_content;
+		die();
+	}
 }
 
 new RpiMaterialInputTemplate();

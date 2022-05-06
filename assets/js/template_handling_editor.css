@@ -1,0 +1,21 @@
+.reli-inserter a{
+    text-decoration: none;
+    border: 1px solid dodgerblue;
+    width: 15px;
+    display: block;
+    float: left;
+    height: 15px;
+    margin-right: 5px;
+}
+.reli-inserter.remove a{
+    color: red;
+    font-size: 20px;
+    line-height: 0.3;
+    padding-left: 2px;
+}
+.reli-inserter a:after{
+    content:' '
+}
+.reli-inserter.remove a:after{
+    content:'x'
+}

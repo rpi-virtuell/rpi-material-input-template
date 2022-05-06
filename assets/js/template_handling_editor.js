@@ -1,6 +1,88 @@
 /**
  * @author Joachim happel
  */
+RpiMaterialInputTemplate = {
+    init:function (){
+
+        $=jQuery;
+        if($('#components-panel-reli-vorlagen').length ===0 ){
+            $('.interface-complementary-area.edit-post-sidebar').append('<div id="components-panel-reli-vorlagen"></div>');
+        }
+        RpiMaterialInputTemplate.getTemplates();
+
+    },
+    insert:function (id, top){
+        $=jQuery;
+        $.get(
+            ajaxurl, {
+                'action': 'getTemplate',
+                id: id
+            },
+            function (response) {
+                let contentpart = response;
+                let new_blocks =[];
+                let content = wp.data.select("core/editor").getCurrentPost().content;
+                if(top == 1){
+                    new_blocks = wp.blocks.parse( contentpart );
+                    for (const newBlock of wp.data.select("core/editor").getBlocks()) {
+                        new_blocks.push(newBlock)
+                    }
+                }else{
+                    new_blocks=wp.data.select("core/editor").getBlocks();
+                    for (const newBlock of wp.blocks.parse( contentpart )) {
+                        new_blocks.push(newBlock)
+                    }
+                }
+                wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
+                RpiMaterialInputTemplate.init();
+            }
+
+        );
+    },
+    getTemplates:function (){
+        $=jQuery;
+        $.get(
+            ajaxurl, {
+                'action': 'getTemplates'
+
+            },
+            function (response) {
+                $('#components-panel-reli-vorlagen').html(response);
+                $('.reli-inserter').each((i,elem)=>{
+                    let blocks = wp.data.select("core/editor").getBlocks();
+                    let data = $(elem).attr('data');
+                    for(const b of blocks){
+                        if(data.indexOf(b.name)>=0){
+                            $(elem).find('a').attr('href', "javascript:RpiMaterialInputTemplate.remove('"+data+"')");
+                            $(elem).addClass('remove');
+                            $(elem).attr('title', 'entfernen')
+                        }
+                    }
+
+                })
+
+            },
+
+
+        );
+    },
+    remove: function(blocksstr){
+        $=jQuery;
+        let blocks = wp.data.select("core/editor").getBlocks();
+
+        for (const block of blocks) {
+            // console.log('remove',blocksstr ,block.name, blocksstr.indexOf(block.name));
+            if(blocksstr.indexOf(block.name)>-1){
+                console.log('removes',block.clientId );
+                wp.data.select('core/block-editor').getBlockSelectionEnd();
+                wp.data.dispatch('core/block-editor').updateBlockAttributes(block.clientId,{'lock':false})
+                wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
+                wp.data.select('core/block-editor').getBlockSelectionStart();
+            }
+        }
+        RpiMaterialInputTemplate.init();
+    }
+}
 
 
 wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
@@ -39,9 +121,10 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
 
         //deny delete on root blocks
+
         let blocks = wp.data.select('core/block-editor').getBlocks()
         for (block of blocks) {
-            block.attributes.lock = {remove: true}
+            // block.attributes.lock = {remove: true}
         }
         var is_administrator = wp.data.select('core').canUser('create', 'users', 1);
 
@@ -147,12 +230,14 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     if (parentClientId == block.clientId) {
                         wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
                         wp.data.select('core/block-editor').getBlockSelectionStart();
+                        RpiMaterialInputTemplate.init();
                     }
 
 
                 }
             }
         });
+        RpiMaterialInputTemplate.init();
     });
 
 
