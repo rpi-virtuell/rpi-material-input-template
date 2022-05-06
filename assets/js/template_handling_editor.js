@@ -14,7 +14,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     wp.blocks.getBlockTypes().forEach(function (blockType) {
         if (allowedBlocks.indexOf(blockType.name) === -1) {
-            if (blockType.name.indexOf('lazyblock/') < 0) {
+            if (blockType.name.indexOf('lazyblock/reli-') < 0) {
                 wp.blocks.unregisterBlockType(blockType.name);
             }
         }
@@ -22,10 +22,13 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     const blocksAllowInserter = [
         'core/columns',
+        'core/column',
         'core/group',
         'kadence/tab',
-        'kadence/row'
+        'kadence/row',
+        'kadence/column'
     ];
+
     var post_id = wp.data.select("core/editor").getCurrentPostId();
     var is_administrator = wp.data.select('core').canUser('create', 'users');
 
@@ -143,7 +146,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     parentClientId = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
                     if (parentClientId == block.clientId) {
                         wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
-                        wp.data.select('core/editor').getBlockSelectionStart();
+                        wp.data.select('core/block-editor').getBlockSelectionStart();
                     }
 
 
