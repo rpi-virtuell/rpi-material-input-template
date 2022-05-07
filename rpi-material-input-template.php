@@ -38,6 +38,8 @@ class RpiMaterialInputTemplate
 		//ajax
 	    add_action( 'wp_ajax_getTemplate', array( 'RpiMaterialInputTemplate','getTemplate' ));
 	    add_action( 'wp_ajax_getTemplates', array( 'RpiMaterialInputTemplate','getTemplates' ));
+
+
     }
 
     public function add_template_selectbox_to_form($form)
@@ -90,23 +92,61 @@ class RpiMaterialInputTemplate
             "exclude_from_search" => true,
             "capability_type" => "page",
             "map_meta_cap" => true,
-            "hierarchical" => true,
-            "can_export" => false,
+            "hierarchical" => false,
+            "can_export" => true,
             "rewrite" => ["slug" => "materialien", "with_front" => true],
             "query_var" => true,
-            "supports" => ["title",
-                "editor",
-                "thumbnail",
-                'excerpt',
-                'tracksbacks',
-                'custom-fields',
-                'comments',
-                'page-attributes',
-                'post-formats'],
+            "menu_icon" => "dashicons-list-view",
+            "supports" => [
+                    'title',
+                    "editor",
+                    "thumbnail",
+                    'excerpt',
+                    //'custom-fields',
+                    'tracksbacks',
+                    'comments',
+                    'revisions',
+                    'author'
+            ],
             "show_in_graphql" => false,
         ];
 
         register_post_type("materialien", $args);
+
+
+
+	    $labels = [
+		    "name" => __( "Materialvorlagen", "blocksy" ),
+		    "singular_name" => __( "Materialvorlage", "blocksy" ),
+	    ];
+
+	    $args = [
+		    "label" => __( "Materialvorlagen", "blocksy" ),
+		    "labels" => $labels,
+		    "description" => "",
+		    "public" => true,
+		    "publicly_queryable" => true,
+		    "show_ui" => true,
+		    "show_in_rest" => true,
+		    "rest_base" => "",
+		    "rest_controller_class" => "WP_REST_Posts_Controller",
+		    "has_archive" => false,
+		    "show_in_menu" => true,
+		    "show_in_nav_menus" => true,
+		    "delete_with_user" => false,
+		    "exclude_from_search" => false,
+		    "capability_type" => "post",
+		    "map_meta_cap" => true,
+		    "hierarchical" => false,
+		    "can_export" => false,
+		    "rewrite" => [ "slug" => "materialtyp_template", "with_front" => true ],
+		    "query_var" => true,
+		    "menu_icon" => "dashicons-welcome-widgets-menus",
+		    "supports" => [ "title", "editor", "thumbnail" ],
+		    "show_in_graphql" => false,
+	    ];
+
+	    register_post_type( "materialtyp_template", $args );
     }
 
     public function register_gravity_form()
@@ -157,7 +197,10 @@ class RpiMaterialInputTemplate
         if (!is_admin()) return;
         wp_enqueue_script(
             'template_handling',
-            plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js'
+            plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js',
+            array(),
+            '1.0',
+            true
         );
 	    wp_enqueue_style(
 		    'template_handling_style',
@@ -214,7 +257,8 @@ class RpiMaterialInputTemplate
 			'post_status' => 'publish',
 			'post_type'=> 'materialtyp_template',
             'numberposts' => 10,
-			'orderby' => 'meta_value_num post_id'
+			'orderby' => 'menu_order',
+			'order' => 'ASC'
 
 		]);
         if($posts && count($posts)===0){
@@ -223,10 +267,8 @@ class RpiMaterialInputTemplate
         }
 
 		?>
-        <hr/>
         <div class="controll-panel">
-		    <div class="block-editor-block-inspector" style="margin-left: 20px">
-
+		    <div class="block-editor-block-inspector">
                 <h2 class="components-panel__body-title">Materialvorlage ändern</h2>
                 <div>
                     <p>Was soll in deinem Material vorkommen?</p>

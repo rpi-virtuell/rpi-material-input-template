@@ -19,3 +19,26 @@
 .reli-inserter.remove a:after{
     content:'x'
 }
+#editor .custom-toolbar {
+    /*width: 100%;*/
+    position: relative;
+}
+
+#template-config-box{
+    position: absolute;
+    z-index: 20;
+    top: 60px;
+    background-color: #fff;
+    border: 1px solid #aaa;
+    box-shadow: 1px 1px 3px #444;
+    padding: 10px;
+    display: none;
+}
+
+.is-tertiary{
+    /*border:1px solid #006BA1;*/
+}
+.block-header input{
+    font-family:  'Architects Daughter', Sans-Serif!important;
+    color: var(--headings-color);
+}

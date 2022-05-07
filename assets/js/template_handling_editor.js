@@ -4,10 +4,6 @@
 RpiMaterialInputTemplate = {
     init:function (){
 
-        $=jQuery;
-        if($('#components-panel-reli-vorlagen').length ===0 ){
-            $('.interface-complementary-area.edit-post-sidebar').append('<div id="components-panel-reli-vorlagen"></div>');
-        }
         RpiMaterialInputTemplate.getTemplates();
 
     },
@@ -35,11 +31,13 @@ RpiMaterialInputTemplate = {
                 }
                 wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
                 RpiMaterialInputTemplate.init();
+
+
             }
 
         );
     },
-    getTemplates:function (){
+    getTemplates:function (fn){
         $=jQuery;
         $.get(
             ajaxurl, {
@@ -47,7 +45,7 @@ RpiMaterialInputTemplate = {
 
             },
             function (response) {
-                $('#components-panel-reli-vorlagen').html(response);
+                $('#template-config-box').html(response);
                 $('.reli-inserter').each((i,elem)=>{
                     let blocks = wp.data.select("core/editor").getBlocks();
                     let data = $(elem).attr('data');
@@ -59,7 +57,9 @@ RpiMaterialInputTemplate = {
                         }
                     }
 
-                })
+                });
+                if(fn)
+                    fn();
 
             },
 
@@ -114,11 +114,22 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
     var post_id = wp.data.select("core/editor").getCurrentPostId();
     var is_administrator = wp.data.select('core').canUser('create', 'users');
 
+
     jQuery(document).ready(function ($) {
+
+
+
+        //blockeditor ui aufräumen BlocksConfig ausblenden;
+        setTimeout(()=>{
+            $('.interface-pinned-items button:nth-child(2)').remove();
+            },
+            2000
+        );
 
         // hide insert buttons on start
         $('.block-editor-inserter').css({'visibility': 'hidden'});
         $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+
 
         //deny delete on root blocks
 
@@ -237,9 +248,58 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                 }
             }
         });
+        //Event für Vorlage Button
         RpiMaterialInputTemplate.init();
+        $('#template-config-toggle').ready(()=>{
+            $('#template-config-toggle').on('click', (e)=>{
+                $('#template-config-box').slideToggle();
+            });
+        });
+        //inspector ausblenden
+        $('.interface-pinned-items button.is-pressed').click();
+
     });
 
 
     return fn;
 });
+
+/**
+ * fügt einen zusätzlichen Button "Beitrag ansehen" in die obere Werkzeugleiste des Editors ein
+ */
+( function( window, wp ){
+
+    // just to keep it cleaner - we refer to our link by id for speed of lookup on DOM.
+    var link_id = 'template-config-toggle';
+    // check if gutenberg's editor root element is present.
+    var editorEl = document.getElementById( 'editor' );
+    if( !editorEl ){ // do nothing if there's no gutenberg root element on page.
+        return;
+    }
+
+    var template_box_html = '<div class="custom-toolbar"><button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button> &nbsp; BUTTONS</div><div id="template-config-box"></div>';
+
+    var unsubscribe = wp.data.subscribe( function () {
+        setTimeout( function () {
+            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == 'materialien' ) {
+                wp.data.select('core/editor').getCurrentPost().postType
+                // prepare our custom link's html.
+                var link_html = '<button class="components-button is-tertiary" onclick="location.href=\''+wp.data.select('core/editor').getCurrentPost().link+'\'">Beitrag ansehen</button>';
+
+                template_box_html = template_box_html.replace('BUTTONS', link_html);
+
+                var toolbalEl = editorEl.querySelector( '.edit-post-header__toolbar' );
+                if( toolbalEl instanceof HTMLElement ){
+                    toolbalEl.insertAdjacentHTML( 'beforeend', template_box_html );
+                    var l = jQuery('#template-config-toggle').offset().left;
+                    jQuery('#template-config-box').offset({left:l});
+
+                }
+
+            }
+        }, 1 )
+    } );
+    // unsubscribe is a function - it's not used right now
+    // but in case you'll need to stop this link from being reappeared at any point you can just call unsubscribe();
+
+} )( window, wp )
