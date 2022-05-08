@@ -35,7 +35,13 @@ class RpiMaterialInputTemplate
         add_filter('gform_pre_submission_filter', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
 
-		//ajax
+        //Autorenseiten
+	    add_action('pre_get_posts',array($this, 'alter_author_posts'),999);
+	    add_action( 'init',  array( $this,'add_author_support_to_materialien') );
+	    add_action( 'the_title',  array( $this,'the_title'),10,2 );
+
+
+	    //ajax
 	    add_action( 'wp_ajax_getTemplate', array( 'RpiMaterialInputTemplate','getTemplate' ));
 	    add_action( 'wp_ajax_getTemplates', array( 'RpiMaterialInputTemplate','getTemplates' ));
 
@@ -90,7 +96,7 @@ class RpiMaterialInputTemplate
             "show_in_nav_menus" => true,
             "delete_with_user" => false,
             "exclude_from_search" => true,
-            "capability_type" => "page",
+            "capability_type" => "materials",
             "map_meta_cap" => true,
             "hierarchical" => false,
             "can_export" => true,
@@ -102,7 +108,7 @@ class RpiMaterialInputTemplate
                     "editor",
                     "thumbnail",
                     'excerpt',
-                    //'custom-fields',
+                    'custom-fields',
                     'tracksbacks',
                     'comments',
                     'revisions',
@@ -252,7 +258,7 @@ class RpiMaterialInputTemplate
         }
 
     }
-	function getTemplates(){
+	static function getTemplates(){
 		$posts = get_posts([
 			'post_status' => 'publish',
 			'post_type'=> 'materialtyp_template',
@@ -299,11 +305,39 @@ class RpiMaterialInputTemplate
 		<?php
 		die();
 	}
-	function getTemplate(){
+
+    static function getTemplate(){
 		$post_id = $_GET['id'];
 		$post = get_post($post_id);
 		echo $post->post_content;
 		die();
+	}
+
+    function alter_author_posts($query) {
+	    if ( $query->is_author() && $query->is_main_query() ) { // Run only on the homepage
+
+		    $query->query_vars['post_type'] = array('post',get_field('template_post_type', 'option')); // Show all posts
+
+		    $user = wp_get_current_user();
+            if(is_user_logged_in() && $user->user_login == $query->query_vars['author_name']){
+	            $query->query_vars['post_status'] = ['draft', 'planned', 'publish', 'pending'];
+            }
+
+
+	    }
+    }
+	function the_title($title, $id) {
+		$status  = get_post_status($id);
+		global $wp_post_statuses;
+		$display_status= $wp_post_statuses[ $status ];
+
+		if($status != 'publish'){
+	        $title .= ' ('.$display_status->label.')';
+        }
+		return $title;
+	}
+	function add_author_support_to_materialien() {
+        add_post_type_support( get_field('template_post_type', 'option'), 'author' );
 	}
 }
 
