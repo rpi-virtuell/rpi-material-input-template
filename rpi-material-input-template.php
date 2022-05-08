@@ -96,7 +96,7 @@ class RpiMaterialInputTemplate
             "show_in_nav_menus" => true,
             "delete_with_user" => false,
             "exclude_from_search" => true,
-            "capability_type" => "materials",
+            "capability_type" => "post",
             "map_meta_cap" => true,
             "hierarchical" => false,
             "can_export" => true,
