@@ -220,7 +220,7 @@ class RpiMaterialInputTemplate
                     options:
                     {
                         allowed_blocks: JSON.parse('$this->allowed_block_types'),
-                        post_type: '$post_type'
+                        post_type: JSON.parse('$post_type')
                     }
                 }
         </script>";

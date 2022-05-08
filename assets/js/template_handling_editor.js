@@ -87,7 +87,7 @@ RpiMaterialInputTemplate = {
 
 wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
-    if (wp.data.select('core/editor').getCurrentPostType() != 'materialien') {
+    if (wp.data.select('core/editor').getCurrentPostType() != rpi_material_input_template.options.post_type) {
         return fn;
     }
 
@@ -281,7 +281,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     var unsubscribe = wp.data.subscribe( function () {
         setTimeout( function () {
-            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == 'materialien' ) {
+            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == rpi_material_input_template.options.post_type ) {
                 wp.data.select('core/editor').getCurrentPost().postType
                 // prepare our custom link's html.
                 var link_html = '<button class="components-button is-tertiary" onclick="location.href=\''+wp.data.select('core/editor').getCurrentPost().link+'\'">Beitrag ansehen</button>';
