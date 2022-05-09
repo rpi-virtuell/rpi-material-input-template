@@ -21,7 +21,7 @@ class RpiMaterialAllowedBlocks
     }
 
 
-    public function register_acf_fields()
+    static public function register_acf_fields()
     {
         $choices = array();
         $default_value = array();
