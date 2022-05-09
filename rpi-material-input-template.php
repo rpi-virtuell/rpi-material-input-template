@@ -46,6 +46,10 @@ class RpiMaterialInputTemplate
 	    add_action( 'wp_ajax_getTemplates', array( 'RpiMaterialInputTemplate','getTemplates' ));
 
 
+	    //hide taxonomy Metaboxes in Block-Editor
+	    add_filter( 'rest_prepare_taxonomy',  array($this,'hide_taxonomy_metaboxes'),10, 3 );
+
+
     }
 
     public function add_template_selectbox_to_form($form)
@@ -353,6 +357,27 @@ class RpiMaterialInputTemplate
 	    $count = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->posts $where" );
         return $count;
     }
+
+	/**
+     * hide MetaBoxes for custom Taxonomy if Metabox callback == false
+     *
+	 * @param $response
+	 * @param WP_Taxonomy $taxonomy
+	 * @param $request
+	 *
+	 * @return mixed
+	 */
+	function hide_taxonomy_metaboxes( $response, WP_Taxonomy $taxonomy, $request ) {
+		$context = ! empty( $request['context'] ) ? $request['context'] : 'view';
+		// Context is edit in the editor
+		if ( $context === 'edit' && $taxonomy->meta_box_cb === false ) {
+			$data_response                          = $response->get_data();
+			$data_response['visibility']['show_ui'] = false;
+			$response->set_data( $data_response );
+		}
+
+		return $response;
+	}
 
 }
 
