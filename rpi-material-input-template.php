@@ -37,8 +37,8 @@ class RpiMaterialInputTemplate
 
         //Autorenseiten
 	    add_action('pre_get_posts',array($this, 'alter_author_posts'),999);
-	    add_action( 'init',  array( $this,'add_author_support_to_materialien') );
 	    add_action( 'the_title',  array( $this,'the_title'),10,2 );
+	    add_filter( 'get_usernumposts', array($this,'get_author_usernumposts'),10, 4 );
 
 
 	    //ajax
@@ -336,9 +336,24 @@ class RpiMaterialInputTemplate
         }
 		return $title;
 	}
-	function add_author_support_to_materialien() {
-        add_post_type_support( get_field('template_post_type', 'option'), 'author' );
-	}
+
+	/**
+     * Filter: Anzahl der Materialien und Beiträge eines Autors
+	 * @param $count
+	 * @param $userid
+	 * @param $post_type
+	 * @param $public_only
+	 *
+	 * @return string|null
+	 */
+    function get_author_usernumposts($count, $userid, $post_type, $public_only){
+
+        global $wpdb;
+        $where = get_posts_by_author_sql( array('post', get_field('template_post_type', 'option')), true, $userid, $public_only );
+	    $count = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->posts $where" );
+        return $count;
+    }
+
 }
 
 new RpiMaterialInputTemplate();
