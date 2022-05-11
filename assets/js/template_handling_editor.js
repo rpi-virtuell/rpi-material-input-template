@@ -73,7 +73,7 @@ RpiMaterialInputTemplate = {
         for (const block of blocks) {
             // console.log('remove',blocksstr ,block.name, blocksstr.indexOf(block.name));
             if(blocksstr.indexOf(block.name)>-1){
-                console.log('removes',block.clientId );
+                // console.log('removes',block.clientId );
                 wp.data.select('core/block-editor').getBlockSelectionEnd();
                 wp.data.dispatch('core/block-editor').updateBlockAttributes(block.clientId,{'lock':false})
                 wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
@@ -150,7 +150,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             const types = wp.blocks.getBlockTypes();
             if (is_administrator && location.hash == '#admin') {
 
-                console.log('is_administrator', is_administrator);
+                // console.log('is_administrator', is_administrator);
                 $('.block-editor-inserter').css('visibility', 'visible');
                 $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", false)
 
@@ -199,7 +199,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
                 if (blocksAllowInserter.includes(curr_block.name) || curr_block.name.indexOf('lazyblock/') === 0) {
 
-                    console.log('unlock inserter', curr_block.name)
+                    // console.log('unlock inserter', curr_block.name)
                     // show insert buttons
                     $('.block-editor-inserter').css('visibility', 'visible');
                     $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", false)
@@ -214,7 +214,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                         }
                     }
                 } else {
-                    console.log('lock inserter', curr_block.name);
+                    // console.log('lock inserter', curr_block.name);
                 }
 
             }
@@ -233,7 +233,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             //root blocks überprüfen ob sie einen Absatz enthalten
             let blocks = wp.data.select('core/block-editor').getBlocks()
             for (const block of blocks) {
-                console.log(block.name, block.name == 'core/paragraph', block.clientId);
+                // console.log(block.name, block.name == 'core/paragraph', block.clientId);
                 if (block.name == 'core/paragraph') {
 
                     // wenn der Absatz keinen parent hat, löschen
@@ -282,7 +282,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
     var unsubscribe = wp.data.subscribe( function () {
         setTimeout( function () {
             if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == rpi_material_input_template.options.post_type ) {
-                wp.data.select('core/editor').getCurrentPost().postType
+
                 // prepare our custom link's html.
                 var link_html = '<button class="components-button is-tertiary" onclick="location.href=\''+wp.data.select('core/editor').getCurrentPost().link+'\'">Beitrag ansehen</button>';
 
