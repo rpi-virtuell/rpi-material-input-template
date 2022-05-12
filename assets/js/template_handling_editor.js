@@ -3,9 +3,18 @@
  */
 RpiMaterialInputTemplate = {
     init:function (){
+        this.getTemplates();
 
-        RpiMaterialInputTemplate.getTemplates();
-
+    },
+    setTemplateAttributes: function (e){
+        const post = wp.data.select('core/editor').getCurrentPost();
+        if(post.type == 'materialtyp_template'){
+            const update = wp.data.dispatch('core/block-editor').updateBlockAttributes;
+            const getBlocks = wp.data.select('core/block-editor').getBlocks;
+            getBlocks().forEach((block)=>{
+                update(block.clientId,{'template':post.slug})
+            });
+        }
     },
     insert:function (id, top){
         $=jQuery;
@@ -31,8 +40,7 @@ RpiMaterialInputTemplate = {
                 }
                 wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
                 RpiMaterialInputTemplate.init();
-
-
+                RpiMaterialInputTemplate.resetFeatureImage()
             }
 
         );
@@ -46,17 +54,17 @@ RpiMaterialInputTemplate = {
             },
             function (response) {
                 $('#template-config-box').html(response);
+                let blocks = wp.data.select("core/editor").getBlocks();
                 $('.reli-inserter').each((i,elem)=>{
-                    let blocks = wp.data.select("core/editor").getBlocks();
-                    let data = $(elem).attr('data');
+                    let templ = $(elem).attr('data');
                     for(const b of blocks){
-                        if(data.indexOf(b.name)>=0){
-                            $(elem).find('a').attr('href', "javascript:RpiMaterialInputTemplate.remove('"+data+"')");
+                        console.log(b.attributes.template,templ);
+                        if(templ == b.attributes.template){
+                            $(elem).find('a').attr('href', "javascript:RpiMaterialInputTemplate.remove('"+templ+"')");
                             $(elem).addClass('remove');
                             $(elem).attr('title', 'entfernen')
                         }
                     }
-
                 });
                 if(fn)
                     fn();
@@ -66,13 +74,13 @@ RpiMaterialInputTemplate = {
 
         );
     },
-    remove: function(blocksstr){
+
+    remove: function(template){
         $=jQuery;
         let blocks = wp.data.select("core/editor").getBlocks();
-
         for (const block of blocks) {
             // console.log('remove',blocksstr ,block.name, blocksstr.indexOf(block.name));
-            if(blocksstr.indexOf(block.name)>-1){
+            if(template == block.attributes.template){
                 // console.log('removes',block.clientId );
                 wp.data.select('core/block-editor').getBlockSelectionEnd();
                 wp.data.dispatch('core/block-editor').updateBlockAttributes(block.clientId,{'lock':false})
@@ -80,10 +88,35 @@ RpiMaterialInputTemplate = {
                 wp.data.select('core/block-editor').getBlockSelectionStart();
             }
         }
-        RpiMaterialInputTemplate.init();
+        this.init();
+        this.resetFeatureImage();
+    },
+    resetFeatureImage: function (){
+
+        let block = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'core/post-featured-image')[0];
+
+        this.unlock(block);
+        for(i=0;i<20;i++){
+            wp.data.dispatch('core/block-editor').moveBlocksUp([block.clientId])
+        }
+        this.lock(block);
+
+    },
+    lock: function (block){
+        block.attributes.lock ={insert:true,move:true,remove:true};
+        wp.data.dispatch('core/block-editor').replaceBlock(block.clientId,block);
+    },
+    unlock: function (block){
+        delete block.attributes.lock;
+        wp.data.dispatch('core/block-editor').replaceBlock(block.clientId,block);
     }
 }
 
+wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
+    $=jQuery;
+    $(window).on('editorBlocksChanged',RpiMaterialInputTemplate.setTemplateAttributes);
+
+});
 
 wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
@@ -119,21 +152,20 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
 
 
-        //blockeditor ui aufräumen BlocksConfig ausblenden;
-        setTimeout(()=>{
-            $('.interface-pinned-items button:nth-child(2)').remove();
-            },
-            2000
-        );
+        //blockeditor ui aufräumen BlocksyConfig ausblenden;
+        setTimeout(()=>{ $('.interface-pinned-items button:nth-child(2)').remove(); },2000 );
 
         // hide insert buttons on start
         $('.block-editor-inserter').css({'visibility': 'hidden'});
         $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
 
+        //inspector ausblenden
+        $('.interface-pinned-items button.is-pressed').click();
+
 
         //deny delete on root blocks
 
-        let blocks = wp.data.select('core/block-editor').getBlocks()
+        let blocks = wp.data.select('core/block-editor').getBlocks();
         for (block of blocks) {
             // block.attributes.lock = {remove: true}
         }
@@ -145,6 +177,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             //Fehlerhaft
             if (typeof is_administrator == 'undefined')
                 is_administrator = wp.data.select('core').canUser('create', 'users');
+
 
 
             const types = wp.blocks.getBlockTypes();
@@ -254,20 +287,23 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             $('#template-config-toggle').on('click', (e)=>{
                 $('#template-config-box').slideToggle();
             });
+            $('.interface-interface-skeleton__body').click((e)=>{
+                $('#template-config-box').slideUp();
+            });
         });
-        //inspector ausblenden
-        $('.interface-pinned-items button.is-pressed').click();
+
 
     });
-
 
     return fn;
 });
 
-/**
- * fügt einen zusätzlichen Button "Beitrag ansehen" in die obere Werkzeugleiste des Editors ein
- */
+
 ( function( window, wp ){
+
+    /**
+     * fügt einen zusätzlichen Button "Beitrag ansehen" in die obere Werkzeugleiste des Editors ein
+     */
 
     // just to keep it cleaner - we refer to our link by id for speed of lookup on DOM.
     var link_id = 'template-config-toggle';
@@ -299,7 +335,48 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             }
         }, 1 )
     } );
-    // unsubscribe is a function - it's not used right now
-    // but in case you'll need to stop this link from being reappeared at any point you can just call unsubscribe();
+
+
+    /**
+     * create Observer
+     * fire Events editorBlocksChanged and editorContentChanged
+     */
+    wp.domReady(() => {
+
+        const editor = wp.data.select('core/block-editor');
+        let blockList = editor.getClientIdsWithDescendants();
+        let blockcontent = '';
+        wp.data.subscribe(() => {
+
+            if(editor.getSelectedBlock()!==null){
+                const currblock = editor.getBlock(
+                    editor.getBlockHierarchyRootClientId(editor.getSelectedBlockClientId())
+                );
+
+                const newHTML = jQuery('#block-'+currblock.clientId).html();
+                const contentChanged = newHTML !== blockcontent;
+                blockcontent = newHTML;
+
+                const newBlockList = editor.getClientIdsWithDescendants();
+                const blockListChanged = newBlockList !== blockList;
+                blockList = newBlockList;
+
+
+                if (blockListChanged) {
+                    jQuery(window).trigger('editorBlocksChanged', [currblock, editor.getBlocks()]);
+                }
+                if(contentChanged){
+                    jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
+                }
+
+            }
+
+
+
+
+        });
+
+    });
+
 
 } )( window, wp )

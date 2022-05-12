@@ -189,13 +189,15 @@ class RpiMaterialInputTemplate
 
         $post = get_post($entry['post_id']);
         if (is_a($post, 'WP_Post') && !empty($template_ids)) {
+	        $post->post_content = '<!-- wp:post-featured-image /-->';
             foreach ($template_ids as $template_id) {
                 $template = get_post($template_id);
                 if (is_a($template, 'WP_Post')) {
                     $post->post_content .= $template->post_content;
                 }
-                wp_update_post($post);
             }
+	        $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->'."\n".'<p class="hidden">/</p>'."\n".'<!-- /wp:paragraph -->';
+	        wp_update_post($post);
         }
 
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
@@ -285,22 +287,13 @@ class RpiMaterialInputTemplate
                     <p>Was soll in deinem Material vorkommen?</p>
                     <ul><?php
                         $i = 0;
-	                    foreach ($posts as $post){
-                            $i ++;
-                            $blocks = parse_blocks($post->post_content);
-		                    $attr = [];
-                            foreach ($blocks as  $block){
-
-                                if(strpos($block['blockName'], "lazyblock/reli")!==false){
-	                                $attr[] = $block['blockName'];
-                                }
-                            }
-	                        $data = implode(',',$attr);
-		                    $top = 0;
-                            if($i < 4){
-	                            $top = 1;
-		                    }
-	                        echo '<li class="reli-inserter" data="'.$data.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.','.$top.')"></a> <span>'.$post->post_title.'</span></li>';
+                        foreach ($posts as $post){
+	                        $i ++;
+	                        $top = 0;
+	                        if($i < 4){
+		                        $top = 1;
+	                        }
+                            echo '<li class="reli-inserter" data="'.$post->post_name.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.','.$top.')"></a> <span>'.$post->post_title.'</span></li>';
                         }
                         ?>
                     </ul>

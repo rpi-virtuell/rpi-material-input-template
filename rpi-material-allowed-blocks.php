@@ -3,7 +3,7 @@
 
 class RpiMaterialAllowedBlocks
 {
-    public function register_template_settings_options_page()
+    static public function register_template_settings_options_page()
     {
 
         if (function_exists('acf_add_options_page')) {
