@@ -145,7 +145,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
     ];
 
     var post_id = wp.data.select("core/editor").getCurrentPostId();
-    var is_administrator = wp.data.select('core').canUser('create', 'users');
 
 
     jQuery(document).ready(function ($) {
@@ -169,21 +168,14 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         for (block of blocks) {
             // block.attributes.lock = {remove: true}
         }
-        var is_administrator = wp.data.select('core').canUser('create', 'users', 1);
 
 
         $('.block-editor-block-list__layout').on('click', function (e) {
 
-            //Fehlerhaft
-            if (typeof is_administrator == 'undefined')
-                is_administrator = wp.data.select('core').canUser('create', 'users');
-
-
 
             const types = wp.blocks.getBlockTypes();
-            if (is_administrator && location.hash == '#admin') {
+            if (rpi_material_input_template.user.is_editor && location.hash == '#admin') {
 
-                // console.log('is_administrator', is_administrator);
                 $('.block-editor-inserter').css('visibility', 'visible');
                 $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", false)
 
@@ -258,10 +250,10 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
          * verhindern das ein Absatz auf der Obersten Dokumenteben gesetzt werden kann
          * mit Hilde eine Document Observers, der bei Veränderung des Doms feuert
          */
-        is_administrator = wp.data.select('core').canUser('create', 'users');
+
         $('.block-editor-block-list__layout').bind("DOMSubtreeModified", function (e) {
 
-            if (is_administrator && location.hash == '#admin') return;
+            if (rpi_material_input_template.user.is_editor && location.hash == '#admin') return;
 
             //root blocks überprüfen ob sie einen Absatz enthalten
             let blocks = wp.data.select('core/block-editor').getBlocks()

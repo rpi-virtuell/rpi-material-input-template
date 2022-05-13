@@ -40,7 +40,7 @@ class RpiMaterialInputTemplate
 	    add_action( 'the_title',  array( $this,'the_title'),10,2 );
 	    add_filter( 'get_usernumposts', array($this,'get_author_usernumposts'),10, 4 );
 
-
+        add_filter( 'admin_init', array($this,'add_capabilities'),10, 4 );
 	    //ajax
 	    add_action( 'wp_ajax_getTemplate', array( 'RpiMaterialInputTemplate','getTemplate' ));
 	    add_action( 'wp_ajax_getTemplates', array( 'RpiMaterialInputTemplate','getTemplates' ));
@@ -100,7 +100,16 @@ class RpiMaterialInputTemplate
             "show_in_nav_menus" => true,
             "delete_with_user" => false,
             "exclude_from_search" => false,
-            "capability_type" => "post",
+            'capability_type' => array('material','materials'),
+	        "capabilities" =>array(
+		        'edit_post' => 'edit_material',
+		        'edit_posts' => 'edit_materials',
+		        'edit_others_posts' => 'edit_other_materials',
+		        'publish_posts' => 'publish_materials',
+		        'read_post' => 'read_material',
+		        'read_private_posts' => 'read_private_materials',
+		        'delete_post' => 'delete_material'
+	        ),
             "map_meta_cap" => true,
             "hierarchical" => false,
             "can_export" => true,
@@ -158,6 +167,44 @@ class RpiMaterialInputTemplate
 	    ];
 
 	    register_post_type( "materialtyp_template", $args );
+    }
+
+    public function add_capabilities(){
+
+	    $roles = ['administrator', 'editor'];
+
+	    foreach ($roles as $roleslug){
+
+             $role = get_role( $roleslug );
+
+
+             $role->add_cap( 'edit_material' );
+             $role->add_cap( 'edit_other_materials' );
+             $role->add_cap( 'edit_published_materials' );
+             $role->add_cap( 'read_private_materials' );
+             $role->add_cap( 'edit_private_materials' );
+             $role->add_cap( 'delete_material' );
+             $role->add_cap( 'delete_private_materials' );
+             $role->add_cap( 'delete_others_materials' );
+             $role->add_cap( 'publish_materials' );
+
+
+        }
+
+	    add_role( 'autorin', 'Autor:in');
+
+            $role = get_role( 'autorin' );
+            $role->add_cap( 'upload_files' );
+            $role->add_cap( 'read' );
+            $role->add_cap( 'level_2' );
+            $role->add_cap( 'level_1' );
+            $role->add_cap( 'level_0' );
+            $role->add_cap( 'read_material' );
+	        $role->add_cap( 'edit_material' );
+	        $role->add_cap( 'edit_published_materials' );
+	        $role->add_cap( 'delete_material' );
+	        $role->add_cap( 'publish_materials' );
+
     }
 
     public function register_gravity_form()
@@ -225,7 +272,11 @@ class RpiMaterialInputTemplate
     {
         $this->allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
-
+        if(is_user_logged_in()){
+            $is_editor = current_user_can('edit_other_posts')?'true':'false';
+        }else{
+	        $is_editor = 'false';
+        }
         echo
         "<script>
                 const rpi_material_input_template = 
@@ -233,7 +284,11 @@ class RpiMaterialInputTemplate
                     options:
                     {
                         allowed_blocks: JSON.parse('$this->allowed_block_types'),
-                        post_type: JSON.parse('$post_type')
+                        post_type: JSON.parse('$post_type'),
+                        
+                    },
+                    user:{
+                        is_editor: $is_editor
                     }
                 }
         </script>";
