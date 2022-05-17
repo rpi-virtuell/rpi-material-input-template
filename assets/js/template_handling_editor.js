@@ -284,6 +284,11 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             });
         });
 
+        //Autor ändern (macht das ACF Feld leider nicht)
+        $('.acf-field-post-author').on('change',(e)=>{
+            wp.data.dispatch('core/editor').editPost({author:$('.acf-field-post-author select').val()})
+        })
+
 
     });
 
