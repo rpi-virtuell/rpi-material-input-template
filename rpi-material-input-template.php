@@ -104,11 +104,14 @@ class RpiMaterialInputTemplate
 	        "capabilities" =>array(
 		        'edit_post' => 'edit_material',
 		        'edit_posts' => 'edit_materials',
-		        'edit_others_posts' => 'edit_other_materials',
+		        'edit_others_posts' => 'edit_others_materials',
+		        'delete_others_posts' => 'delete_others_materials',
+		        'delete_published_posts' => 'delete_published_materials',
+		        'read_private_posts' => 'read_private_materials',
 		        'publish_posts' => 'publish_materials',
 		        'read_post' => 'read_material',
-		        'read_private_posts' => 'read_private_materials',
-		        'delete_post' => 'delete_material'
+		        'delete_post' => 'delete_material',
+		        'delete_posts' => 'delete_materials',
 	        ),
             "map_meta_cap" => true,
             "hierarchical" => false,
@@ -127,11 +130,18 @@ class RpiMaterialInputTemplate
                     'revisions',
                     'author'
             ],
-            'taxonomies' => ['kinderaktivitaten'],
+            'taxonomies' => ['kinderaktivitaten','kinderfahrung','anlass','alter','schlagwort'],
             "show_in_graphql" => false,
         ];
 
         register_post_type("materialien", $args);
+
+	    register_post_meta( 'materialien', 'workflow_step', array(
+		    'show_in_rest' => true,
+		    'single' => true,
+		    'type' => 'number',
+            'default'=> 0
+	    ) );
 
 
 
@@ -162,11 +172,62 @@ class RpiMaterialInputTemplate
 		    "rewrite" => [ "slug" => "materialtyp_template", "with_front" => true ],
 		    "query_var" => true,
 		    "menu_icon" => "dashicons-welcome-widgets-menus",
-		    "supports" => [ "title", "editor", "thumbnail" ],
+		    "supports" => [ "title", "editor", "thumbnail","custom-fields" ],
 		    "show_in_graphql" => false,
 	    ];
 
 	    register_post_type( "materialtyp_template", $args );
+
+
+        /**
+         * assign taxonomies **********************************************************************************************
+         */
+
+
+
+        /**
+         * Taxonomy: Einrichtungen.
+         * slug: organisation
+         */
+
+        $labels = [
+            "name" => __( "Einrichtungen", "blocksy" ),
+            "singular_name" => __( "Einrichtung", "blocksy" ),
+        ];
+
+
+        $args = [
+            "label" => __( "Einrichtungen", "blocksy" ),
+            "labels" => $labels,
+            "public" => true,
+            "publicly_queryable" => true,
+            "hierarchical" => false,
+            "show_ui" => false,
+            "show_in_menu" => true,
+            "show_in_nav_menus" => true,
+            "query_var" => true,
+            "rewrite" => [ 'slug' => 'organisation', 'with_front' => true, ],
+            "show_admin_column" => true,
+            "show_in_rest" => true,
+            "show_tagcloud" => false,
+            "rest_base" => "organisation",
+            "rest_controller_class" => "WP_REST_Terms_Controller",
+            "rest_namespace" => "wp/v2",
+            "show_in_quick_edit" => false,
+            "sort" => false,
+            "show_in_graphql" => false,
+            "meta_box_cb" => false,
+            "capabilities" => array(
+                'manage_terms'=> 'manage_organisation',
+                'edit_terms'=> 'edit_organisation',
+                'delete_terms'=> 'delete_organisation',
+                'assign_terms' => 'assign_organisation'
+            ),
+        ];
+        register_taxonomy( "organisation", [ "materialien" ], $args );
+
+
+
     }
 
     public function add_capabilities(){
@@ -178,17 +239,25 @@ class RpiMaterialInputTemplate
              $role = get_role( $roleslug );
 
 
-             $role->add_cap( 'edit_material' );
-             $role->add_cap( 'edit_other_materials' );
-             $role->add_cap( 'edit_published_materials' );
-             $role->add_cap( 'read_private_materials' );
-             $role->add_cap( 'edit_private_materials' );
-             $role->add_cap( 'delete_material' );
-             $role->add_cap( 'delete_private_materials' );
-             $role->add_cap( 'delete_others_materials' );
-             $role->add_cap( 'publish_materials' );
 
+            $role->add_cap( 'read_material' );
+            $role->add_cap( 'edit_materials' );
+            $role->add_cap( 'edit_published_materials' );
+            $role->add_cap( 'delete_materials' );
+            $role->add_cap( 'publish_materials' );
 
+		    $role->add_cap( 'edit_others_materials' );
+		    $role->add_cap( 'edit_published_materials' );
+		    $role->add_cap( 'delete_published_materials' );
+		    $role->add_cap( 'read_private_materials' );
+		    $role->add_cap( 'edit_private_materials' );
+		    $role->add_cap( 'delete_private_materials' );
+		    $role->add_cap( 'delete_others_materials' );
+
+		    $role->add_cap( 'manage_organisation' );
+		    $role->add_cap( 'edit_organisation' );
+		    $role->add_cap( 'assign_organisation' );
+		    $role->add_cap( 'delete_organisation' );
         }
 
 	    add_role( 'autorin', 'Autor:in');
@@ -200,16 +269,25 @@ class RpiMaterialInputTemplate
             $role->add_cap( 'level_1' );
             $role->add_cap( 'level_0' );
             $role->add_cap( 'read_material' );
-	        $role->add_cap( 'edit_material' );
+	        $role->add_cap( 'edit_materials' );
 	        $role->add_cap( 'edit_published_materials' );
-	        $role->add_cap( 'delete_material' );
+	        $role->add_cap( 'delete_materials' );
 	        $role->add_cap( 'publish_materials' );
+
+        /**
+	     *  Rechte, Begriffe zu Taxonomien hinzuzufügen
+	     */
+
+            $role->add_cap( 'assign_organisation' );
+	        $role->add_cap( 'manage_organisation' );
+
+
 
     }
 
     public function register_gravity_form()
     {
-////             TODO:: DEBUG resource to create importable file for Gravity Forms
+//             TODO:: DEBUG resource to create importable file for Gravity Forms
 //                    $form = GFAPI::get_form(63);
 //                   file_put_contents(__DIR__.'/form.dat', serialize($form));
 
