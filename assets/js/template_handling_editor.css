@@ -43,7 +43,9 @@
     color: var(--headings-color);
 }
 
-
+.wp-block-post-featured-image::before {
+    content: 'Beitragsbild wählen';
+}
 
 .tooltip{
     position: relative;
