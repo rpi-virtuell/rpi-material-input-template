@@ -54,19 +54,26 @@
 }
 .tooltip-box{
     visibility: hidden;
-    width: 150px;
+    width: 300px;
     background-color: #555;
     color: #fff;
-    text-align: center;
+    text-align: justify;
+    text-align-last: unset;
     border-radius: 6px;
-    padding: 5px 0;
+    padding: 10px;
     position: absolute;
     z-index: 1;
-    top: 125%;
+    bottom: 100%;
     left: 50%;
-    margin-left: -75px;
+    margin-left: -35px;
     opacity: 0;
     transition: opacity 0.3s;
+}
+.tooltip-box > *{
+    text-align: center;
+}
+.tooltip-box a{
+    color: white;
 }
 .tooltip:hover .tooltip-box{
     visibility: visible;
