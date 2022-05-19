@@ -172,7 +172,7 @@ class RpiMaterialInputTemplate
 		    "rewrite" => [ "slug" => "materialtyp_template", "with_front" => true ],
 		    "query_var" => true,
 		    "menu_icon" => "dashicons-welcome-widgets-menus",
-		    "supports" => [ "title", "editor", "thumbnail","custom-fields" ],
+		    "supports" => [ "title", "editor", "thumbnail" ],
 		    "show_in_graphql" => false,
 	    ];
 

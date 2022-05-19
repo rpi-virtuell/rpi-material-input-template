@@ -60,10 +60,10 @@ RpiMaterialInputTemplate = {
         switch (step){
             case 1:
                 //dialog öffnen und fragen ob weitere Eingaben ok sind
-                html= '<p>Gerne würden wir dir zwei weitere Fragen stellen, die anderen dabei helfen können zu entscheiden, wo sie das Material einsetzen könnten.</p><ol>';
+                html= '<p><strong>Zwei Fragen noch</strong></p><ol>';
                 html += '<li>zur Situation, in der sich die Material besonders eignet</li>';
-                html += '<li>zu deinen eigenen Erfahrungen</li>';
-                html += '</ol><p>Die Beantwortung ist natürlich freiwillig</p>';
+                html += '<li>zu deinen eigenen Erfahrungen mit dem Material</li>';
+                html += '</ol><p>Darf ich die beiden Blöcke an dein Material anfügen?</p>';
                 html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.insertQuests(1690)">Einverstanden</a></p>';
                 html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.insertQuests(-1)">Nein, möchte ich nicht</a></p>';
 
@@ -95,6 +95,7 @@ RpiMaterialInputTemplate = {
             default:
                 if(letters > 100){
                     wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 1}});
+                    RpiMaterialInputTemplate.steps();
                 }
                 wp.data.dispatch('core/editor').savePost();
                 jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
@@ -400,7 +401,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 ( function( window, wp ){
 
     /**
-     * fügt einen zusätzlichen Button "Beitrag ansehen" in die obere Werkzeugleiste des Editors ein
+     * fügt zusätzliche Buttons in die obere Werkzeugleiste des Editors ein
      */
 
     // just to keep it cleaner - we refer to our link by id for speed of lookup on DOM.
@@ -411,7 +412,11 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         return;
     }
 
-    var template_box_html = '<div class="custom-toolbar"><button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button> &nbsp; BUTTONS</div><div id="template-config-box"></div>';
+    var template_box_html = '' +
+        '<div class="custom-toolbar">' +
+            '<button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button>' +
+            ' &nbsp; BUTTONS</div>' +
+        '<div id="template-config-box"></div>';
 
     var unsubscribe = wp.data.subscribe( function () {
         setTimeout( function () {
