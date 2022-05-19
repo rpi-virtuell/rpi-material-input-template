@@ -24,7 +24,6 @@ class RpiMaterialInputTemplate
         add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_template_settings_options_page'));
         add_action('init', array($this, 'register_custom_post_type'));
         add_action('init', array($this, 'register_gravity_form'));
-        add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
         add_action('admin_head', array($this, 'supply_option_data_to_js'));
 
@@ -34,8 +33,9 @@ class RpiMaterialInputTemplate
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_submission_filter', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
+	    add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
 
-        //Autorenseiten
+	    //Autorenseiten
 	    add_action('pre_get_posts',array($this, 'alter_author_posts'),999);
 	    add_action( 'the_title',  array( $this,'the_title'),10,2 );
 	    add_filter( 'get_usernumposts', array($this,'get_author_usernumposts'),10, 4 );
@@ -52,27 +52,6 @@ class RpiMaterialInputTemplate
 
     }
 
-    public function add_template_selectbox_to_form($form)
-    {
-
-        foreach ($form['fields'] as &$field) {
-            if ($field->type != 'checkbox') {
-                continue;
-            }
-            $materialtyp_templates = get_posts(
-                array(
-                    'post_type' => 'materialtyp_template',
-                    'numberposts' => -1
-                ));
-            $choices = array();
-            foreach ($materialtyp_templates as $materialtyp_template) {
-                $choices[] = array('text' => $materialtyp_template->post_title, 'value' => $materialtyp_template->ID);
-            }
-            $field->placeholder = 'In welchen Bereich fällt der Beitrag?';
-            $field->choices = $choices;
-        }
-        return $form;
-    }
 
     public function register_custom_post_type()
     {
@@ -153,7 +132,17 @@ class RpiMaterialInputTemplate
 	    $args = [
 		    "label" => __( "Materialvorlagen", "blocksy" ),
 		    "labels" => $labels,
-
+		    "description" => "",
+		    "public" => true,
+		    "publicly_queryable" => true,
+		    "show_ui" => true,
+		    "show_in_rest" => true,
+		    "rest_base" => "",
+		    "rest_controller_class" => "WP_REST_Posts_Controller",
+		    "has_archive" => false,
+		    "show_in_menu" => true,
+		    "show_in_nav_menus" => true,
+		    "delete_with_user" => false,
 		    "exclude_from_search" => false,
 		    "capability_type" => "post",
 		    "map_meta_cap" => true,
@@ -164,6 +153,7 @@ class RpiMaterialInputTemplate
 		    "menu_icon" => "dashicons-welcome-widgets-menus",
 		    "supports" => [ "title", "editor", "thumbnail" ],
 		    "show_in_graphql" => false,
+		    'taxonomies' => ['template_type']
 	    ];
 
 	    register_post_type( "materialtyp_template", $args );
@@ -291,13 +281,45 @@ class RpiMaterialInputTemplate
 
     }
 
+	public function add_template_selectbox_to_form($form)
+	{
+		foreach ($form['fields'] as &$field) {
+			if ($field->type != 'checkbox' && $field->type != 'radio') {
+				continue;
+			}
+
+			$term = $field->type == 'radio'?'radio':'checkbox';
+			$args = array(
+				'post_type' => 'materialtyp_template',
+				'numberposts' => -1,
+				'tax_query' => array(
+					array(
+						'taxonomy' => 'template_type',
+						'field' => 'slug',
+						'terms' => $term,
+						'include_children' => true,
+						'operator' => 'IN'
+					)
+				)
+			);
+			$materialtyp_templates = get_posts($args);
+
+			$choices = array();
+			foreach ($materialtyp_templates as $materialtyp_template) {
+				$choices[] = array('text' => $materialtyp_template->post_title, 'value' => $materialtyp_template->ID);
+			}
+			$field->placeholder = 'In welchen Bereich fällt der Beitrag?';
+			$field->choices = $choices;
+		}
+		return $form;
+	}
 
     function add_template_and_redirect($entry, $form)
     {
         $template_ids = array();
 
         foreach ($_POST as $input_key => $input_value) {
-            if (str_starts_with($input_key, 'input_9_')) {
+            if (str_starts_with($input_key, 'input_9_') or $input_key == 'input_14') {
                 $template_ids[] = $input_value;
             }
         }
@@ -389,13 +411,21 @@ class RpiMaterialInputTemplate
 
     }
 	static function getTemplates(){
-		$posts = get_posts([
-			'post_status' => 'publish',
-			'post_type'=> 'materialtyp_template',
-            'numberposts' => 10,
-			'orderby' => 'menu_order',
-			'order' => 'ASC'
 
+		$term = isset($_GET['term'])? $_GET['term'] : 'checkbox';
+
+		$posts = get_posts([
+			'post_type' => 'materialtyp_template',
+			'numberposts' => -1,
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'template_type',
+					'field' => 'slug',
+					'terms' => $term,
+					'include_children' => true,
+					'operator' => 'IN'
+				)
+			)
 		]);
         if($posts && count($posts)===0){
             echo '';
