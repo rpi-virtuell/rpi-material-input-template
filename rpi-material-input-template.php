@@ -125,12 +125,12 @@ class RpiMaterialInputTemplate
 
 
 	    $labels = [
-		    "name" => __( "Materialvorlagen", "blocksy" ),
-		    "singular_name" => __( "Materialvorlage", "blocksy" ),
+		    "name" => __( "Vorlagen Interview", "blocksy" ),
+		    "singular_name" => __( "Vorlage", "blocksy" ),
 	    ];
 
 	    $args = [
-		    "label" => __( "Materialvorlagen", "blocksy" ),
+		    "label" => __( "Vorlagen Interview", "blocksy" ),
 		    "labels" => $labels,
 		    "description" => "",
 		    "public" => true,
@@ -150,7 +150,7 @@ class RpiMaterialInputTemplate
 		    "can_export" => false,
 		    "rewrite" => [ "slug" => "materialtyp_template", "with_front" => true ],
 		    "query_var" => true,
-		    "menu_icon" => "dashicons-welcome-widgets-menus",
+		    "menu_icon" => "dashicons-yes-alt",
 		    "supports" => [ "title", "editor", "thumbnail" ],
 		    "show_in_graphql" => false,
 		    'taxonomies' => ['template_type']
@@ -326,14 +326,16 @@ class RpiMaterialInputTemplate
 
         $post = get_post($entry['post_id']);
         if (is_a($post, 'WP_Post') && !empty($template_ids)) {
-	        $post->post_content = '<!-- wp:post-featured-image /-->';
+	        $post->post_content = '<!-- wp:post-featured-image /-->'."\n\n".
+                                  '<!-- wp:lazyblock/reli-leitfragen-kurzbeschreibung {"is_teaser":true} /-->';
             foreach ($template_ids as $template_id) {
                 $template = get_post($template_id);
                 if (is_a($template, 'WP_Post')) {
                     $post->post_content .= $template->post_content;
                 }
             }
-	        $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->'."\n".'<p class="hidden">/</p>'."\n".'<!-- /wp:paragraph -->';
+	        $post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang /-->';
+            $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->'."\n".'<p class="hidden">/</p>'."\n".'<!-- /wp:paragraph -->';
 	        wp_update_post($post);
         }
 
