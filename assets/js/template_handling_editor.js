@@ -20,6 +20,8 @@ RpiMaterialInputTemplate = {
             }
             jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
 
+            this.resetStaticBlockPositions();
+
         }
     },
     insertQuests: function(post_id = 0){
@@ -143,7 +145,7 @@ RpiMaterialInputTemplate = {
                 }
                 wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
                 RpiMaterialInputTemplate.init();
-                RpiMaterialInputTemplate.resetFeatureImage()
+                RpiMaterialInputTemplate.resetStaticBlockPositions()
             }
 
         );
@@ -161,8 +163,8 @@ RpiMaterialInputTemplate = {
                 $('.reli-inserter').each((i,elem)=>{
                     let templ = $(elem).attr('data');
                     for(const b of blocks){
-                        console.log(b.attributes.template,templ);
-                        if(templ == b.attributes.template){
+                        //console.log(b.attributes.template,templ);
+                        if(b.attributes.template && templ == b.attributes.template){
                             $(elem).find('a').attr('href', "javascript:RpiMaterialInputTemplate.remove('"+templ+"')");
                             $(elem).addClass('remove');
                             $(elem).attr('title', 'entfernen')
@@ -192,18 +194,40 @@ RpiMaterialInputTemplate = {
             }
         }
         this.init();
-        this.resetFeatureImage();
+        this.resetStaticBlockPositions();
     },
-    resetFeatureImage: function (){
+    resetStaticBlockPositions: function (){
 
-        let block = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'core/post-featured-image')[0];
+        let feature = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'core/post-featured-image')[0];
+        let teaser = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'lazyblock/reli-leitfragen-kurzbeschreibung')[0];
+        console.log('moveBlocksUp',[teaser.clientId,feature.clientId] );
 
+        if(teaser && feature){
+            this.moveTop(teaser);
+            this.moveTop(feature);
+        }
+
+        let anhang = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'lazyblock/reli-leitfragen-anhang')[0];
+        if(anhang){
+            this.moveBottom(anhang);
+        }
+
+    },
+    moveBottom: function (block){
+        const z = wp.data.select('core/block-editor').getBlocks().length;
         this.unlock(block);
-        for(i=0;i<20;i++){
+        for(i=0;i<z;i++){
+            wp.data.dispatch('core/block-editor').moveBlocksDown([block.clientId])
+        }
+        this.lock(block);
+    },
+    moveTop: function (block){
+        const z = wp.data.select('core/block-editor').getBlocks().length;
+        this.unlock(block);
+        for(i=0;i<z;i++){
             wp.data.dispatch('core/block-editor').moveBlocksUp([block.clientId])
         }
         this.lock(block);
-
     },
     lock: function (block){
         block.attributes.lock ={insert:true,move:true,remove:true};
@@ -385,18 +409,30 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             });
         });
 
-        //Autor ändern (macht das ACF Feld leider nicht)
-        $('.acf-field-post-author').on('change',(e)=>{
-            wp.data.dispatch('core/editor').editPost({author:$('.acf-field-post-author select').val()})
+        //wp authorID mit acf-field-user synchronisieren
+        $('.acf-field-user').on('change',(e)=>{
+            wp.data.dispatch('core/editor').editPost({author:$('.acf-field-user select').val()})
         })
-
-
+        let authorID = wp.data.select('core/editor').getPostEdits().author;
+        $(window).on('authorChanged',(e, authorID)=>{
+            if(authorID != $('.acf-field-user select').val()){
+                wp.apiFetch( { path: '/wp/v2/users/'+authorID } ).then( author => {
+               $('.acf-field-user select option').remove();
+                    $('.acf-field-user select').append(new Option(author.name, authorID ,false, true));
+                });
+            }
+        });
 
     });
 
+    //acf-field-user mit wp author id setzen
+    jQuery('.acf-field-user select').ready(($)=>{
+        $(window).trigger('authorChanged',wp.data.select('core/editor').getCurrentPostAttribute('author') ); }
+    );
+
+
     return fn;
 });
-
 
 ( function( window, wp ){
 
@@ -449,7 +485,14 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         const editor = wp.data.select('core/block-editor');
         let blockList = editor.getClientIdsWithDescendants();
         let blockcontent = '';
+        let authorID =wp.data.select('core/editor').getCurrentPostAttribute('author');
         wp.data.subscribe(() => {
+
+            //notwendig um wp authorID mit acf-field-user synchronisieren
+            if(wp.data.select('core/editor').getPostEdits().author && wp.data.select('core/editor').getPostEdits().author != authorID){
+                authorID = wp.data.select('core/editor').getPostEdits().author;
+                jQuery(window).trigger('authorChanged', [authorID]);
+            }
 
             if(editor.getSelectedBlock()!==null){
                 const currblock = editor.getBlock(
