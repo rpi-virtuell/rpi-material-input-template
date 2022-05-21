@@ -17,8 +17,12 @@ RpiMaterialInputTemplate = {
             let status = wp.data.select('core/editor').getEditedPostAttribute('status');
             if(status == 'draft'){
                 jQuery('.editor-post-publish-button__button.is-primary').on('click', RpiMaterialInputTemplate.steps);
+                // jQuery('.editor-post-publish-button__button.is-primary').html('Speichern');
+                //jQuery('.editor-post-publish-button__button.is-primary').hide();
+                RpiMaterialInputTemplate.steps();
+
             }
-            jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
+
 
             this.resetStaticBlockPositions();
 
@@ -38,7 +42,7 @@ RpiMaterialInputTemplate = {
             })
         },1000);
 
-        jQuery('.editor-post-publish-button__button.is-primary').html('Prüfen');
+        //jQuery('.editor-post-publish-button__button.is-primary').html('Prüfen');
         wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 2}});
         wp.data.dispatch('core/editor').savePost();
 
@@ -47,7 +51,8 @@ RpiMaterialInputTemplate = {
 
         wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 3}});
         wp.data.dispatch('core/editor').savePost();
-        jQuery('.editor-post-publish-button__button.is-primary').html('Veröffentlichen');
+        //jQuery('.editor-post-publish-button__button.is-primary').html('Veröffentlichen');
+        jQuery('.editor-post-publish-button__button.is-primary').show();
         jQuery('#TB_closeWindowButton').click();
 
     },
@@ -91,16 +96,25 @@ RpiMaterialInputTemplate = {
 
             case 3:
                 //veröffentlichen
-                jQuery('.editor-post-publish-button__button.is-primary').off('click', RpiMaterialInputTemplate.steps);
-                jQuery('.editor-post-publish-button__button.is-primary').click();
-                break;
+                //jQuery('.editor-post-publish-button__button.is-primary').off('click', RpiMaterialInputTemplate.steps);
+                //jQuery('.editor-post-publish-button__button.is-primary').click();
+
+                try{
+                    wp.data.dispatch('core/editor').editPost({status: 'publish'});
+                    wp.data.dispatch('core/editor').savePost();
+                    //jQuery('.editor-post-publish-button__button.is-primary').html('Aktualisieren');
+                }catch(e){
+                    console.log(e);
+                }
+
+               break;
             default:
                 if(letters > 100){
                     wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 1}});
                     RpiMaterialInputTemplate.steps();
                 }
                 wp.data.dispatch('core/editor').savePost();
-                jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
+                //jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
 
                 return false;
 
@@ -200,10 +214,11 @@ RpiMaterialInputTemplate = {
 
         let feature = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'core/post-featured-image')[0];
         let teaser = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name == 'lazyblock/reli-leitfragen-kurzbeschreibung')[0];
-        console.log('moveBlocksUp',[teaser.clientId,feature.clientId] );
 
-        if(teaser && feature){
+        if(teaser){
             this.moveTop(teaser);
+        }
+        if(feature){
             this.moveTop(feature);
         }
 
@@ -240,8 +255,8 @@ RpiMaterialInputTemplate = {
 }
 
 wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
-    $=jQuery;
-    $(window).on('editorBlocksChanged',RpiMaterialInputTemplate.setTemplateAttributes);
+
+   jQuery(window).on('editorBlocksChanged',RpiMaterialInputTemplate.setTemplateAttributes);
 
 });
 
@@ -277,7 +292,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
     jQuery(document).ready(function ($) {
 
         //blockeditor ui aufräumen BlocksyConfig ausblenden;
-        setTimeout(()=>{ $('.interface-pinned-items button:nth-child(2)').remove(); },2000 );
+        setTimeout(()=>{ $('.interface-pinned-items button:nth-child(2)').hide(); },2000 );
 
         // hide insert buttons on start
         $('.block-editor-inserter').css({'visibility': 'hidden'});
