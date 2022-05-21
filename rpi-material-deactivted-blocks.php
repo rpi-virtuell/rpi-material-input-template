@@ -8,8 +8,8 @@ class RpiMaterialDeactivatedBlocks
 
         if (function_exists('acf_add_options_page')) {
             acf_add_options_page(array(
-                'page_title' => 'Material Template Settings',
-                'menu_title' => 'Material Template Einstellungen',
+                'page_title' => 'Material Einstellungen',
+                'menu_title' => 'Material Einstellungen',
                 'menu_slug' => 'material_template_settings',
                 'capability' => 'manage_options',
                 "position" => "",
@@ -66,11 +66,11 @@ class RpiMaterialDeactivatedBlocks
         if (function_exists('acf_add_local_field_group')) {
             acf_add_local_field_group(array(
                 'key' => 'group_template_post_type',
-                'title' => 'Templates anwenden auf Post Type',
+                'title' => 'Beitragstyp bestimmen',
                 'fields' => array(
                     array(
                         'key' => 'field_template_post_type',
-                        'label' => 'Template Post Type',
+                        'label' => 'Welcher Beittragstyp soll für die Eingabe von Materialien verwendet werden?',
                         'name' => 'template_post_type',
                         'type' => 'select',
                         'instructions' => '',
@@ -112,14 +112,14 @@ class RpiMaterialDeactivatedBlocks
 
             acf_add_local_field_group(array(
                 'key' => 'group_material_deactivated_blocks',
-                'title' => 'Material: Blöcke deaktivieren',
+                'title' => 'Material Blöcke deaktivieren',
                 'fields' => array(
                     array(
                         'key' => 'field_deactivated_block_types',
-                        'label' => 'deactivated_block_types',
+                        'label' => 'Deaktivierte Editor Blöcke',
                         'name' => 'deactivated_block_types',
                         'type' => 'checkbox',
-                        'instructions' => 'Markiere alle Blöcke, die im Post Type Material deaktiviert werden sollen',
+                        'instructions' => 'Markiere alle Blöcke, die bei der Eingabe neuer Materialien nicht zur Auswahl stehen sollen',
                         'required' => 1,
                         'conditional_logic' => 0,
                         'wrapper' => array(
