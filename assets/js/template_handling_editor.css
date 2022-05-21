@@ -95,3 +95,10 @@
 }
 
 
+
+.lazyblock .rich-text [data-rich-text-placeholder]::after {
+
+    content: 'Tippe deine Antwort oder füge deine Inhalte hier ein' !important;
+    opacity: .62;
+
+}

@@ -251,6 +251,29 @@ RpiMaterialInputTemplate = {
     unlock: function (block){
         delete block.attributes.lock;
         wp.data.dispatch('core/block-editor').replaceBlock(block.clientId,block);
+    },
+
+    denyInserts: function (){
+
+        if (rpi_material_input_template.user.is_editor && location.hash == '#admin') return;
+
+        //root blocks überprüfen ob sie einen Absatz enthalten
+        let blocks = wp.data.select('core/block-editor').getBlocks()
+        for (const block of blocks) {
+            // console.log(block.name, block.name == 'core/paragraph', block.clientId);
+            if (block.name == 'core/paragraph') {
+
+                // wenn der Absatz keinen parent hat, löschen
+                parentClientId = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
+                if (parentClientId == block.clientId) {
+                    wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
+                    wp.data.select('core/block-editor').getBlockSelectionStart();
+                    RpiMaterialInputTemplate.init();
+                }
+
+
+            }
+        }
     }
 }
 
@@ -266,15 +289,15 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         return fn;
     }
 
-    var allowedBlocks = rpi_material_input_template.options.allowed_blocks;
+    var deactivatedBlocks = rpi_material_input_template.options.deactivated_blocks;
 
 
     wp.blocks.getBlockTypes().forEach(function (blockType) {
-        if (allowedBlocks.indexOf(blockType.name) === -1) {
-            if (blockType.name.indexOf('lazyblock/reli-') < 0) {
-                wp.blocks.unregisterBlockType(blockType.name);
-            }
+
+        if(deactivatedBlocks.includes(blockType.name)){
+            wp.blocks.unregisterBlockType(blockType.name);
         }
+
     });
 
     const blocksAllowInserter = [
@@ -393,25 +416,8 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
         $('.block-editor-block-list__layout').bind("DOMSubtreeModified", function (e) {
 
-            if (rpi_material_input_template.user.is_editor && location.hash == '#admin') return;
+            RpiMaterialInputTemplate.denyInserts();
 
-            //root blocks überprüfen ob sie einen Absatz enthalten
-            let blocks = wp.data.select('core/block-editor').getBlocks()
-            for (const block of blocks) {
-                // console.log(block.name, block.name == 'core/paragraph', block.clientId);
-                if (block.name == 'core/paragraph') {
-
-                    // wenn der Absatz keinen parent hat, löschen
-                    parentClientId = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
-                    if (parentClientId == block.clientId) {
-                        wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
-                        wp.data.select('core/block-editor').getBlockSelectionStart();
-                        RpiMaterialInputTemplate.init();
-                    }
-
-
-                }
-            }
         });
         //Event für Vorlage Button
         RpiMaterialInputTemplate.init();
@@ -471,8 +477,9 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     var unsubscribe = wp.data.subscribe( function () {
         setTimeout( function () {
-            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == rpi_material_input_template.options.post_type ) {
 
+            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == rpi_material_input_template.options.post_type ) {
+                console.log('start');
                 // prepare our custom link's html.
                 var link_html = '<button class="components-button is-tertiary" onclick="location.href=\''+wp.data.select('core/editor').getCurrentPost().link+'\'">Beitrag ansehen</button>';
 

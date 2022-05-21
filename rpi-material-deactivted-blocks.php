@@ -1,7 +1,7 @@
 <?php
 
 
-class RpiMaterialAllowedBlocks
+class RpiMaterialDeactivatedBlocks
 {
     static public function register_template_settings_options_page()
     {
@@ -26,29 +26,40 @@ class RpiMaterialAllowedBlocks
         $choices = array();
         $default_value = array();
         foreach (WP_Block_Type_Registry::get_instance()->get_all_registered() as $block_Type) {
-            if ($block_Type->parent != null)
-                continue;
+	        if ($block_Type->parent != null)
+				continue;
+
+
             if (!isset($block_Type_Module)) {
                 $block_Type_Module = explode('/', $block_Type->name, 2);
                 $choices['## ' . $block_Type_Module[0]] = '## ' . $block_Type_Module[0];
-                $default_value[] = $block_Type->name;
+                //$default_value[] = $block_Type->name;
+
             }
             if (!is_bool($block_Type_Module) && !str_starts_with($block_Type->name, $block_Type_Module[0])) {
                 $block_Type_Module = explode('/', $block_Type->name, 2);
                 $choices['## ' . $block_Type_Module[0]] = '## ' . $block_Type_Module[0];
             }
+	        if(empty($block_Type->title)){
+		        $title = isset($block_Type->attributes['title']['default']) ?$block_Type->attributes['title']['default'] : ucfirst(str_replace('',' ',preg_replace('#[^/]*/(reli-)?#','',$block_Type->name)));
+	        }else{
+				$title = $block_Type->title;
+	        }
 
-            $choices[$block_Type->name] = !empty($block_Type->title) ? $block_Type->name : $block_Type->name . ' | ' . $block_Type->title;
-            $default_value[] = $block_Type->name;
+            $choices[$block_Type->name] = $block_Type->name . ' | ' . $title;
+            //$default_value[] = $block_Type->name;
+
 
         }
+	    //var_dump($block_Type->attributes);die();
+
 
         //TODO needs to be refactored =>  redundancy
         $postTypes = get_post_types();
         $type_choices = array();
         $type_default_value = array();
         foreach ($postTypes as $postType) {
-            $type_choices[$postType] = $postType;
+			$type_choices[$postType] = $postType;
             $type_default_value[] = $postType;
         }
 
@@ -100,15 +111,15 @@ class RpiMaterialAllowedBlocks
             ));
 
             acf_add_local_field_group(array(
-                'key' => 'group_material_allowed_blocks',
-                'title' => 'Material erlaubte Blöcke',
+                'key' => 'group_material_deactivated_blocks',
+                'title' => 'Material: Blöcke deaktivieren',
                 'fields' => array(
                     array(
-                        'key' => 'field_allowed_block_types',
-                        'label' => 'allowed_block_types',
-                        'name' => 'allowed_block_types',
+                        'key' => 'field_deactivated_block_types',
+                        'label' => 'deactivated_block_types',
+                        'name' => 'deactivated_block_types',
                         'type' => 'checkbox',
-                        'instructions' => '',
+                        'instructions' => 'Markiere alle Blöcke, die im Post Type Material deaktiviert werden sollen',
                         'required' => 1,
                         'conditional_logic' => 0,
                         'wrapper' => array(
@@ -120,7 +131,7 @@ class RpiMaterialAllowedBlocks
                         'only_front' => 0,
                         'choices' => $choices,
                         'allow_custom' => 0,
-                        'default_value' => $default_value,
+                        'default_value' => [] , //$default_value,
                         'layout' => 'vertical',
                         'toggle' => 0,
                         'return_format' => 'value',

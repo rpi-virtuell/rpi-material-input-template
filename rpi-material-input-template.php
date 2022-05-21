@@ -10,18 +10,18 @@ Author URI: https://github.com/FreelancerAMP
 License: A "Slug" license name e.g. GPL2
 */
 
-require_once('rpi-material-allowed-blocks.php');
+require_once( 'rpi-material-deactivted-blocks.php' );
 
 class RpiMaterialInputTemplate
 {
 
-    private $allowed_block_types;
+    private $deactivated_block_types;
 
     function __construct()
     {
-        $this->allowed_block_types = array();
-        add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_acf_fields'));
-        add_action('admin_menu', array('RpiMaterialAllowedBlocks', 'register_template_settings_options_page'));
+        $this->deactivated_block_types = array();
+        add_action('admin_menu', array( 'RpiMaterialDeactivatedBlocks', 'register_acf_fields'));
+        add_action('admin_menu', array( 'RpiMaterialDeactivatedBlocks', 'register_template_settings_options_page'));
         add_action('init', array($this, 'register_custom_post_type'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
@@ -49,7 +49,14 @@ class RpiMaterialInputTemplate
 	    //hide taxonomy Metaboxes in Block-Editor
 	    add_filter( 'rest_prepare_taxonomy',  array($this,'hide_taxonomy_metaboxes'),10, 3 );
 
-
+        //placeholder for empty paragraphs -> need to change in css too
+	    add_filter( 'write_your_story',function(string $text, WP_Post $post){
+            if($post->post_type == get_field('template_post_type','option')){
+                return 'Tippe deine Antwort oder füge deine Inhalte hier ein';
+            }else{
+	            return $text;
+            }
+        }, 10,2);
     }
 
 
@@ -360,7 +367,7 @@ class RpiMaterialInputTemplate
 
     public function supply_option_data_to_js()
     {
-        $this->allowed_block_types = json_encode(get_field('allowed_block_types', 'option'));
+        $this->deactivated_block_types = json_encode(get_field('deactivated_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
         if(is_user_logged_in()){
             $is_editor = current_user_can('edit_other_posts')?'true':'false';
@@ -373,7 +380,7 @@ class RpiMaterialInputTemplate
                 {
                     options:
                     {
-                        allowed_blocks: JSON.parse('$this->allowed_block_types'),
+                        deactivated_blocks: JSON.parse('$this->deactivated_block_types'),
                         post_type: JSON.parse('$post_type'),
                         
                     },
@@ -389,23 +396,28 @@ class RpiMaterialInputTemplate
         if (isset($_GET['post'], $_GET['action']) && $_GET['action'] === 'edit') {
             $post = get_post($_GET['post']);
             if (is_a($post, 'WP_Post') && $post->post_type == get_field('template_post_type', 'option')) {
-                $existing_blocks = array();
-                $this->allowed_block_types = get_field('allowed_block_types', 'option');
-                $blocks = parse_blocks($post->post_content);
-                foreach ($blocks as $block_key => $block) {
-                    if (!empty($block['blockName']) && !empty($this->allowed_block_types)) {
-                        if (in_array($block['blockName'], $this->allowed_block_types) && !in_array($block['blockName'], $existing_blocks)) {
-                            $existing_blocks[] = $block['blockName'];
-                            continue;
-                        }
-                        $existing_blocks[] = $block['blockName'];
-                        $blocks[$block_key]['blockName'] = 'lazyblock/reli-default-block';
-                        $blocks[$block_key]['attrs']['blockUniqueClass'] = 'lazyblock/reli-default-block-' . $block['attrs']['blockId'];
+                //$existing_blocks = array();
+                $this->deactivated_block_types = get_field('deactivated_block_types', 'option');
+                if(!empty($this->deactivated_block_types)){
 
-                    }
+	                $blocks = parse_blocks($post->post_content);
+	                foreach ($blocks as $block_key => $block) {
+		                if (!empty($block['blockName']) ) {
+			                if (in_array($block['blockName'], $this->deactivated_block_types) && $block['blockName'] != 'lazyblock/reli-default-block') {  //&& !in_array($block['blockName'], $existing_blocks)
+				              //  $existing_blocks[] = $block['blockName'];
+				                $blocks[$block_key]['blockName'] = 'lazyblock/reli-default-block';
+				                $blocks[$block_key]['attrs']['blockUniqueClass'] = 'lazyblock/reli-default-block-' . $block['attrs']['blockId'];
+
+			                }
+			                //$existing_blocks[] = $block['blockName'];
+			                continue;
+
+		                }
+	                }
+	                $post->post_content = serialize_blocks($blocks);
+	                // wp_update_post($post);
                 }
-                $post->post_content = serialize_blocks($blocks);
-                wp_update_post($post);
+
             }
         }
 
