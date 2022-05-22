@@ -367,13 +367,16 @@ class RpiMaterialInputTemplate
 
     public function supply_option_data_to_js()
     {
+
+        //ermitteln, ob user Redakteur ist
         $this->deactivated_block_types = json_encode(get_field('deactivated_block_types', 'option'));
         $post_type = json_encode(get_field('template_post_type', 'option'));
         if(is_user_logged_in()){
-            $is_editor = current_user_can('edit_other_posts')?'true':'false';
+            $is_editor = current_user_can('edit_other_materials')?'true':'false';
         }else{
 	        $is_editor = 'false';
         }
+	    //globale javascript variable "rpi_material_input_template" befüllen
         echo
         "<script>
                 const rpi_material_input_template = 
@@ -389,6 +392,25 @@ class RpiMaterialInputTemplate
                     }
                 }
         </script>";
+
+	    if(get_post_type(get_the_ID()) != get_field('template_post_type', 'option')){
+		    return;
+	    }
+
+	    //blaue inserter Linie zwischen den Block verbergen, weil verwirrend
+	    echo
+	    '<style>
+            .block-editor-block-list__insertion-point-popover.is-without-arrow .is-with-inserter
+            { 
+                opacity: 0;
+            }
+            .block-editor-default-block-appender[data-root-client-id=""]
+            {
+                opacity: 0;
+            }
+        </style>';
+
+
     }
 
     public function check_for_broken_blocks()

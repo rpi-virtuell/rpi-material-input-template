@@ -9,11 +9,12 @@ class RpiMaterialDeactivatedBlocks
         if (function_exists('acf_add_options_page')) {
             acf_add_options_page(array(
                 'page_title' => 'Material Einstellungen',
-                'menu_title' => 'Material Einstellungen',
+                'menu_title' => 'Einstellungen',
                 'menu_slug' => 'material_template_settings',
                 'capability' => 'manage_options',
                 "position" => "",
-                "parent_slug" => "options-general.php",
+                //"parent_slug" => "options-general.php",
+                "parent_slug" => "edit.php?post_type=materialien",
                 'redirect' => true,
                 'post_id' => 'options'
             ));
@@ -23,45 +24,52 @@ class RpiMaterialDeactivatedBlocks
 
     static public function register_acf_fields()
     {
+		//get all blocktypes
         $choices = array();
-        $default_value = array();
-        foreach (WP_Block_Type_Registry::get_instance()->get_all_registered() as $block_Type) {
+
+
+
+
+
+	    foreach (WP_Block_Type_Registry::get_instance()->get_all_registered() as $block_Type) {
 	        if ($block_Type->parent != null)
 				continue;
-
 
             if (!isset($block_Type_Module)) {
                 $block_Type_Module = explode('/', $block_Type->name, 2);
                 $choices['## ' . $block_Type_Module[0]] = '## ' . $block_Type_Module[0];
-                //$default_value[] = $block_Type->name;
-
             }
             if (!is_bool($block_Type_Module) && !str_starts_with($block_Type->name, $block_Type_Module[0])) {
                 $block_Type_Module = explode('/', $block_Type->name, 2);
                 $choices['## ' . $block_Type_Module[0]] = '## ' . $block_Type_Module[0];
             }
-	        if(empty($block_Type->title)){
-		        $title = isset($block_Type->attributes['title']['default']) ?$block_Type->attributes['title']['default'] : ucfirst(str_replace('',' ',preg_replace('#[^/]*/(reli-)?#','',$block_Type->name)));
+	        if(empty($block_Type->title) && function_exists('lazyblocks')){
+		        $lazyblock = lazyblocks()->blocks()->get_block( $block_Type->name );
+				if($lazyblock)
+					$title = $lazyblock['title'];
+				else
+					$title = ucfirst(str_replace('',' ',preg_replace('#[^/]*/(reli-)?#','',$block_Type->name)));
+				if($title == 'Form'){
+					$title = 'Formular';
+				}
 	        }else{
 				$title = $block_Type->title;
 	        }
-
             $choices[$block_Type->name] = $block_Type->name . ' | ' . $title;
-            //$default_value[] = $block_Type->name;
-
-
         }
-	    //var_dump($block_Type->attributes);die();
 
 
-        //TODO needs to be refactored =>  redundancy
-        $postTypes = get_post_types();
+		//get all public custom post_types as choices
+        $postTypes = get_post_types(['public'=>true, 'show_in_rest'=>true]);
+	    unset( $postTypes['attachment'] );
+	    unset( $postTypes['page'] );
+		if(isset($postTypes['ct_content_block'])){
+			unset( $postTypes['ct_content_block'] );
+        }
         $type_choices = array();
-        $type_default_value = array();
         foreach ($postTypes as $postType) {
 			$type_choices[$postType] = $postType;
-            $type_default_value[] = $postType;
-        }
+		 }
 
         if (function_exists('acf_add_local_field_group')) {
             acf_add_local_field_group(array(
@@ -82,7 +90,7 @@ class RpiMaterialDeactivatedBlocks
                             'id' => '',
                         ),
                         'choices' => $type_choices,
-                        'default_value' => $type_default_value,
+                        'default_value' => 'material',
                         'allow_null' => 0,
                         'multiple' => 0,
                         'ui' => 0,

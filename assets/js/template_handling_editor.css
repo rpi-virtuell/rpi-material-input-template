@@ -19,7 +19,7 @@
 .reli-inserter.remove a:after{
     content:'x'
 }
-#editor .custom-toolbar {
+#editor .rpi-material-toolbar {
     /*width: 100%;*/
     position: relative;
 }
@@ -102,3 +102,4 @@
     opacity: .62;
 
 }
+

@@ -120,11 +120,13 @@ RpiMaterialInputTemplate = {
 
         }
     },
+
     dialog: function (content='', title='Nächster Schritt',w = 400,h = 300){
           tb_show(title, '#TB_inline?width='+w+'&height='+h);
           jQuery(document).find('#TB_window').width(TB_WIDTH).height(TB_HEIGHT).css('margin-left', - TB_WIDTH / 2);
           jQuery('#TB_ajaxContent').html(content);
     },
+
     setTemplateAttributes: function (e){
         const post = wp.data.select('core/editor').getCurrentPost();
         if(post.type == 'materialtyp_template'){
@@ -135,6 +137,7 @@ RpiMaterialInputTemplate = {
             });
         }
     },
+
     insert:function (id, top){
         $=jQuery;
         $.get(
@@ -164,6 +167,7 @@ RpiMaterialInputTemplate = {
 
         );
     },
+
     getTemplates:function (fn){
         $=jQuery;
         $.get(
@@ -252,7 +256,82 @@ RpiMaterialInputTemplate = {
         delete block.attributes.lock;
         wp.data.dispatch('core/block-editor').replaceBlock(block.clientId,block);
     },
+    setPermissions: function (){
+        const $ = jQuery;
 
+        const blocksAllowInserter = [
+            'core/columns',
+            'core/column',
+            'core/group',
+            'kadence/tab',
+            'kadence/row',
+            'kadence/column'
+        ];
+
+        const types = wp.blocks.getBlockTypes();
+
+        if (rpi_material_input_template.user.is_editor && location.hash == '#admin') {
+
+            $('.block-editor-inserter').css('visibility', 'visible');
+            $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", null);
+
+
+
+            for (const blocktype of types) {
+                if (blocktype.supports) {
+
+                    blocktype.supports.inserter = true;
+                    delete blocktype.supports.innerBlocks;
+
+                }
+            }
+
+            let blocks = wp.data.select('core/block-editor').getBlocks()
+            for (block of blocks) {
+                delete block.attributes.lock;
+                delete block.attributes.lock;
+            }
+            return;
+        }
+
+
+        // hide insert buttons
+        $('.block-editor-inserter').css({'visibility': 'hidden'});
+        $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+
+
+        var curr_block = wp.data.select('core/block-editor').getSelectedBlock();
+
+        if (curr_block != null && curr_block.clientId) {
+
+            //oberstes Eltern-Element ermitteln.
+            const parentClientId = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(curr_block.clientId);
+            if (parentClientId) {
+                curr_block = wp.data.select('core/block-editor').getBlock(parentClientId);
+            }
+
+            if (blocksAllowInserter.includes(curr_block.name) || curr_block.name.indexOf('lazyblock/') === 0) {
+
+                 console.log('unlock inserter', curr_block.name)
+                // show insert buttons
+                $('.block-editor-inserter').css('visibility', 'visible');
+                $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", null);
+
+                // inserter wieder aktiv setzen
+                for (const blocktype of types) {
+                    if (blocktype.supports) {
+
+                        blocktype.supports.inserter = true;
+                        delete blocktype.supports.innerBlocks;
+
+                    }
+                }
+            }
+
+        }
+
+
+    },
     denyInserts: function (){
 
         if (rpi_material_input_template.user.is_editor && location.hash == '#admin') return;
@@ -268,13 +347,91 @@ RpiMaterialInputTemplate = {
                 if (parentClientId == block.clientId) {
                     wp.data.dispatch('core/block-editor').removeBlock(block.clientId);
                     wp.data.select('core/block-editor').getBlockSelectionStart();
-                    RpiMaterialInputTemplate.init();
+                    // RpiMaterialInputTemplate.init();
                 }
 
 
+            }else{
+                //deny delete on root blocks (works not as exspected)
+                // block.attributes.lock = {remove: true};
             }
+
         }
+        jQuery('.block-editor-default-block-appender[data-root-client-id=""]').css({'display':'none'});
+
+
+        // hide insert buttons on start
+
+
+        //$('.block-editor-inserter').css({'visibility': 'hidden'});
+        //$('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+
+
+
+    },
+    addToolbar: function($){
+        /**
+         * fügt eine zusätzliche Toolbar in die obere Werkzeugleiste des Editors ein
+         */
+
+        if(wp.data.select('core/editor').getCurrentPost().type != rpi_material_input_template.options.post_type){
+            return;
+        }
+
+        var editorEl = document.getElementById( 'editor' );
+        if( !editorEl ){ // do nothing if there's no gutenberg root element on page.
+            return;
+        }
+
+
+        if ( $( '.rpi-material-toolbar' ).length ===0  ) {
+            // prepare our custom link's html.
+            var template_box_html = '' +
+                '<div class="rpi-material-toolbar">' +
+                '<button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button>' +
+                '<button id="display-post-btn" class="components-button is-tertiary">Beitrag ansehen</button>' +
+                '</div>' +
+                '<div id="template-config-box"></div>';
+
+
+            var toolbalEl = editorEl.querySelector('.edit-post-header__toolbar');
+            if (toolbalEl instanceof HTMLElement) {
+                toolbalEl.insertAdjacentHTML('beforeend', template_box_html);
+                var left = jQuery('#template-config-toggle').offset().left;
+                $('#template-config-box').offset({left: left});
+            }
+
+            $('#template-config-toggle').click((e) => {
+                jQuery('#template-config-box').slideToggle();
+            });
+            $('.interface-interface-skeleton__body').click((e) => {
+                $('#template-config-box').slideUp();
+            });
+            $('#display-post-btn').click((e) => {
+                location.href =  wp.data.select('core/editor').getCurrentPost().link;
+            });
+            RpiMaterialInputTemplate.init();
+        }
+
+    },
+    doWith_ACF_Fields:function ($){
+
+        //wp authorID mit acf-field-user synchronisieren
+        $('.acf-field-user').on('change',(e)=>{
+            wp.data.dispatch('core/editor').editPost({author:$('.acf-field-user select').val()})
+        })
+        let authorID = wp.data.select('core/editor').getPostEdits().author;
+        $(window).on('authorChanged',(e, authorID)=>{
+            if(authorID != $('.acf-field-user select').val()){
+                wp.apiFetch( { path: '/wp/v2/users/'+authorID } ).then( author => {
+                    $('.acf-field-user select option').remove();
+                    $('.acf-field-user select').append(new Option(author.name, authorID ,false, true));
+                });
+            }
+        });
     }
+
+
 }
 
 wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
@@ -300,149 +457,58 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     });
 
-    const blocksAllowInserter = [
-        'core/columns',
-        'core/column',
-        'core/group',
-        'kadence/tab',
-        'kadence/row',
-        'kadence/column'
-    ];
+
 
     var post_id = wp.data.select("core/editor").getCurrentPostId();
 
-
     jQuery(document).ready(function ($) {
 
-        //blockeditor ui aufräumen BlocksyConfig ausblenden;
-        setTimeout(()=>{ $('.interface-pinned-items button:nth-child(2)').hide(); },2000 );
+        //blockeditor ui aufräumen nicht core Zeugs ausblenden;
 
-        // hide insert buttons on start
-        $('.block-editor-inserter').css({'visibility': 'hidden'});
-        $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+        $('.interface-pinned-items button').css({'display':'none'});
+        $('.interface-pinned-items button:first-child').css({'display':'unset'});
 
-        //inspector ausblenden
+        //hide
+        $('.edit-post-header-toolbar > div').css({'opacity':0});
+        $('.edit-post-header-toolbar > div:first-child').css({'opacity':1});
+        $('.edit-post-header-toolbar > div.rpi-material-toolbar').css({'opacity':1});
+
+        //move kadence-toolbar autside
+        $('.kadence-toolbar-design-library button').click(()=>{return false;});
+        $('.kadence-toolbar-design-library').css({'position':'absolute','top':'-100px'});
+
+        //inspector schließen
         $('.interface-pinned-items button.is-pressed').click();
 
 
-        //deny delete on root blocks
 
-        let blocks = wp.data.select('core/block-editor').getBlocks();
-        for (block of blocks) {
-            // block.attributes.lock = {remove: true}
-        }
-
+        $('.editor-styles-wrapper.block-editor-writing-flow').click(()=>{
+            if(!wp.data.select('core/block-editor').getSelectedBlock()){
+                $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+                $('.block-editor-inserter').css({'visibility': 'hidden'});
+            }
+        })
 
         $('.block-editor-block-list__layout').on('click', function (e) {
 
-
-            const types = wp.blocks.getBlockTypes();
-            if (rpi_material_input_template.user.is_editor && location.hash == '#admin') {
-
-                $('.block-editor-inserter').css('visibility', 'visible');
-                $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", false)
-
-
-                for (const blocktype of types) {
-                    if (blocktype.supports) {
-
-                        blocktype.supports.inserter = true;
-                        delete blocktype.supports.innerBlocks;
-
-                    }
-                }
-
-                let blocks = wp.data.select('core/block-editor').getBlocks()
-                for (block of blocks) {
-                    delete block.attributes.lock;
-                    delete block.attributes.lock;
-                }
-                return;
-            }
-
-            /**
-             * default lock all
-             */
-
-            for (const blocktype of types) {
-                if (blocktype.supports) {
-                    blocktype.supports.inserter = false;
-                    blocktype.supports.innerBlocks = false;
-                }
-            }
-            // hide insert buttons
-            $('.block-editor-inserter').css({'visibility': 'hidden'});
-            $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true)
-
-
-            var curr_block = wp.data.select('core/block-editor').getSelectedBlock();
-
-            if (curr_block != null && curr_block.clientId) {
-
-                //oberstes Eltern-Element ermitteln.
-                const parentClientId = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(curr_block.clientId);
-                if (parentClientId) {
-                    curr_block = wp.data.select('core/block-editor').getBlock(parentClientId);
-                }
-
-                if (blocksAllowInserter.includes(curr_block.name) || curr_block.name.indexOf('lazyblock/') === 0) {
-
-                    // console.log('unlock inserter', curr_block.name)
-                    // show insert buttons
-                    $('.block-editor-inserter').css('visibility', 'visible');
-                    $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", false)
-
-                    // inserter wieder aktiv setzen
-                    for (const blocktype of types) {
-                        if (blocktype.supports) {
-
-                            blocktype.supports.inserter = true;
-                            delete blocktype.supports.innerBlocks;
-
-                        }
-                    }
-                } else {
-                    // console.log('lock inserter', curr_block.name);
-                }
-
-            }
-
+            RpiMaterialInputTemplate.setPermissions();
         });
 
         /**
          * verhindern das ein Absatz auf der Obersten Dokumenteben gesetzt werden kann
          * mit Hilde eine Document Observers, der bei Veränderung des Doms feuert
          */
-
         $('.block-editor-block-list__layout').bind("DOMSubtreeModified", function (e) {
 
-            RpiMaterialInputTemplate.denyInserts();
+            RpiMaterialInputTemplate.denyInserts($);
 
         });
-        //Event für Vorlage Button
-        RpiMaterialInputTemplate.init();
-        $('#template-config-toggle').ready(()=>{
-            $('#template-config-toggle').on('click', (e)=>{
-                $('#template-config-box').slideToggle();
-            });
-            $('.interface-interface-skeleton__body').click((e)=>{
-                $('#template-config-box').slideUp();
-            });
-        });
+        /**
+         * Bedonderheiten von ACF verhalten fixen
+         */
+        RpiMaterialInputTemplate.doWith_ACF_Fields($);
 
-        //wp authorID mit acf-field-user synchronisieren
-        $('.acf-field-user').on('change',(e)=>{
-            wp.data.dispatch('core/editor').editPost({author:$('.acf-field-user select').val()})
-        })
-        let authorID = wp.data.select('core/editor').getPostEdits().author;
-        $(window).on('authorChanged',(e, authorID)=>{
-            if(authorID != $('.acf-field-user select').val()){
-                wp.apiFetch( { path: '/wp/v2/users/'+authorID } ).then( author => {
-               $('.acf-field-user select option').remove();
-                    $('.acf-field-user select').append(new Option(author.name, authorID ,false, true));
-                });
-            }
-        });
+
 
     });
 
@@ -451,57 +517,21 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         $(window).trigger('authorChanged',wp.data.select('core/editor').getCurrentPostAttribute('author') ); }
     );
 
-
+    jQuery('.edit-post-header-toolbar__inserter-toggle').ready(($)=> {
+        console.log('edit-post-header-toolbar__inserter-toggle ready');
+        RpiMaterialInputTemplate.addToolbar($);
+    });
     return fn;
 });
 
 ( function( window, wp ){
 
     /**
-     * fügt zusätzliche Buttons in die obere Werkzeugleiste des Editors ein
-     */
-
-    // just to keep it cleaner - we refer to our link by id for speed of lookup on DOM.
-    var link_id = 'template-config-toggle';
-    // check if gutenberg's editor root element is present.
-    var editorEl = document.getElementById( 'editor' );
-    if( !editorEl ){ // do nothing if there's no gutenberg root element on page.
-        return;
-    }
-
-    var template_box_html = '' +
-        '<div class="custom-toolbar">' +
-            '<button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button>' +
-            ' &nbsp; BUTTONS</div>' +
-        '<div id="template-config-box"></div>';
-
-    var unsubscribe = wp.data.subscribe( function () {
-        setTimeout( function () {
-
-            if ( !document.getElementById( link_id )  && wp.data.select('core/editor').getCurrentPost().type == rpi_material_input_template.options.post_type ) {
-                console.log('start');
-                // prepare our custom link's html.
-                var link_html = '<button class="components-button is-tertiary" onclick="location.href=\''+wp.data.select('core/editor').getCurrentPost().link+'\'">Beitrag ansehen</button>';
-
-                template_box_html = template_box_html.replace('BUTTONS', link_html);
-
-                var toolbalEl = editorEl.querySelector( '.edit-post-header__toolbar' );
-                if( toolbalEl instanceof HTMLElement ){
-                    toolbalEl.insertAdjacentHTML( 'beforeend', template_box_html );
-                    var l = jQuery('#template-config-toggle').offset().left;
-                    jQuery('#template-config-box').offset({left:l});
-
-                }
-
-            }
-        }, 1 )
-    } );
-
-
-    /**
      * create Observer
      * fire Events editorBlocksChanged and editorContentChanged
      */
+    let __editor_content_loaded = false
+
     wp.domReady(() => {
 
         const editor = wp.data.select('core/block-editor');
@@ -537,6 +567,13 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
                 }
 
+            }else{
+                if(editor.getBlocks().length > 0 && !__editor_content_loaded){
+                    console.log('__editor_content_loaded');
+                    __editor_content_loaded = true;
+                    RpiMaterialInputTemplate.denyInserts(jQuery);
+                    RpiMaterialInputTemplate.setPermissions();
+                }
             }
 
 
