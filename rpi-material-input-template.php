@@ -90,11 +90,11 @@ class RpiMaterialInputTemplate
 	        "capabilities" =>array(
 		        'edit_posts' => 'edit_materials',
 		        'edit_others_posts' => 'edit_others_materials',
-		        'delete_others_posts' => 'delete_others_materials',
-		        'delete_published_posts' => 'delete_published_materials',
 		        'read_private_posts' => 'read_private_materials',
 		        'publish_posts' => 'publish_materials',
 		        'read_post' => 'read_material',
+		        'delete_others_posts' => 'delete_others_materials',
+		        'delete_published_posts' => 'delete_published_materials',
 		        'delete_posts' => 'delete_materials',
 	        ),
             "map_meta_cap" => true,
@@ -126,8 +126,6 @@ class RpiMaterialInputTemplate
 		    'type' => 'number',
             'default'=> 0
 	    ) );
-
-
 
 	    $labels = [
 		    "name" => __( "Vorlagen Interview", "blocksy" ),
@@ -469,18 +467,12 @@ class RpiMaterialInputTemplate
 		?>
         <div class="controll-panel">
 		    <div class="block-editor-block-inspector">
-                <h2 class="components-panel__body-title">Materialvorlage ändern</h2>
                 <div>
-                    <p>Was soll in deinem Material vorkommen?</p>
+                    <h2>Was soll in deinem Material sonst noch vorkommen?</h2>
                     <ul><?php
                         $i = 0;
                         foreach ($posts as $post){
-	                        $i ++;
-	                        $top = 0;
-	                        if($i < 4){
-		                        $top = 1;
-	                        }
-                            echo '<li class="reli-inserter" data="'.$post->post_name.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.','.$top.')"></a> <span>'.$post->post_title.'</span></li>';
+	                        echo '<li class="reli-inserter" data="'.$post->post_name.'"><a href="javascript:RpiMaterialInputTemplate.insert('.$post->ID.')"></a> <span>'.$post->post_title.'</span></li>';
                         }
                         ?>
                     </ul>

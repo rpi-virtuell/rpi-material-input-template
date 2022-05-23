@@ -9,116 +9,232 @@ RpiMaterialInputTemplate = {
 
     },
 
+    progressBar: function(label, status){
+
+        const $ = jQuery;
+        if($('#rpi-material-status').length === 0){
+            $('.rpi-material-toolbar').append('<div id="rpi-material-status" class="components-button">Status: &nbsp; '+
+                '<div id="rpi-material-status-bar" style="border:1px solid #ccc; width:150px; display: grid;grid-template-columns: 3fr 1fr;">'+
+                '<div id="rpi-material-status-progress" style="width:10px; height:15px; background:orange;"></div>'+
+                '<div id="rpi-material-meta-progress" style="width:1px; height:15px; background:orangered;"></div>'+
+                '</div></div>');
+            $('.rpi-material-toolbar').append('<div class="components-button" style="border-right: 1px solid #ccc;">&nbsp;</div>');
+            $('.rpi-material-toolbar').append('<button id="rpi-material-step" class="components-button is-primary">Speichern</button>');
+
+
+            jQuery('.editor-post-publish-button__button').hide();
+            jQuery('.block-editor-post-preview__dropdown').hide();
+            jQuery('.editor-post-save-draft').hide();
+            jQuery('#rpi-material-step').click((e)=>{
+                wp.data.dispatch('core/editor').savePost();
+                RpiMaterialInputTemplate.steps();
+            });
+
+        }
+
+    },
+
     init_workflow: function(){
         if(!this.workflow){
             this.workflow = true;
 
 
+
+
             let status = wp.data.select('core/editor').getEditedPostAttribute('status');
             if(status == 'draft'){
-                jQuery('.editor-post-publish-button__button.is-primary').on('click', RpiMaterialInputTemplate.steps);
-                // jQuery('.editor-post-publish-button__button.is-primary').html('Speichern');
-                //jQuery('.editor-post-publish-button__button.is-primary').hide();
+                RpiMaterialInputTemplate.progressBar();
                 RpiMaterialInputTemplate.steps();
-
             }
-
-
             this.resetStaticBlockPositions();
 
         }
     },
-    insertQuests: function(post_id = 0){
-        let p = wp.data.select('core/block-editor').getBlocks().length;
-        jQuery('#TB_closeWindowButton').click();
-        if(post_id >0)
-            RpiMaterialInputTemplate.insert(post_id,0);
+    end_workflow:function (){
+        $('.rpi-material-toolbar').remove();
+        jQuery('.editor-post-publish-button__button').show();
+        jQuery('.block-editor-post-preview__dropdown').show();
+        jQuery('.editor-post-save-draft').show();
+    },
 
-        setTimeout(()=> {
-            wp.data.select('core/block-editor').getBlocks().forEach((block,i)=>{
-                if (i==p){
-                    document.location.hash = 'block-'+block.clientId;
+    checkBlocksStartWriting: function (){
+        const $ = jQuery;
+        const blocks =  wp.data.select('core/block-editor').getBlocks().filter((b)=> b.name.indexOf('lazyblock/reli-')===0);
+        let started = [], not_started =[];
+
+        blocks.forEach((block, i)=>{
+
+            if(i < blocks.length-1){
+                var content ='';
+                block.innerBlocks.forEach((b)=>content += $('#block-'+b.clientId).html());
+
+                if(content && content.replace(/(<([^>]+)>)/gi, "").length > 70 ){
+                    started.push(block);
+                }else if(content && content.match(/<figure>/g)){
+                    started.push(block);
+                }else{
+                    not_started.push(block);
                 }
-            })
-        },1000);
-
-        //jQuery('.editor-post-publish-button__button.is-primary').html('Prüfen');
-        wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 2}});
-        wp.data.dispatch('core/editor').savePost();
+            }
+        });
+        return { percent: ( started.length * 100 / (blocks.length-1) ),started:started , not_started:not_started };
 
     },
-    checkComplete: function (){
 
-        wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 3}});
+    checkMeta: function (){
+
+        //Stichproben aus jedem Bereich
+        let has_urheber = wp.data.select('core/editor').getEditedPostAttribute('lizenz').length > 0 ? 1:0;
+        let has_alter = wp.data.select('core/editor').getEditedPostAttribute('alter').length > 0? 1:0;
+        let has_anlass = wp.data.select('core/editor').getEditedPostAttribute('anlass').length > 0?  1:0;
+
+        return {percent: (has_urheber + has_alter + has_anlass)*100/3 ,has_urheber:has_urheber,has_alter:has_alter,has_anlass:has_anlass};
+    },
+    displayWritingProgress: function (){
+        let progress = this.checkBlocksStartWriting();
+        jQuery('#rpi-material-status-progress').css({width:progress.percent+'%', 'max.width':'100%'});
+        jQuery('#rpi-material-status-progress').attr('title', progress.percent+ '% begonnener Schreibprozess');
+        return progress;
+    },
+    displayMetaProgress: function (){
+        let progress = this.checkMeta();
+        jQuery('#rpi-material-meta-progress').css({width:progress.percent+'%', 'max.width':'100%'});
+        jQuery('#rpi-material-meta-progress').attr('title', progress.percent+ '% Metaangaben');
+        return progress;
+    },
+    stepsComplete: function (){
+
+        wp.data.dispatch('core/editor').editPost({status: 'publish'});
         wp.data.dispatch('core/editor').savePost();
-        //jQuery('.editor-post-publish-button__button.is-primary').html('Veröffentlichen');
-        jQuery('.editor-post-publish-button__button.is-primary').show();
         jQuery('#TB_closeWindowButton').click();
+        this.end_workflow();
 
     },
-    steps: function(){
-
-        let step =  wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step ;
-        let content = wp.data.select('core/editor').getEditedPostAttribute('content');
-        let letters = content.replace(/(<([^>]+)>)/gi, "").trim().length
+    setWorkflow: function (step){
 
 
+        if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step != step){
 
-        switch (step){
-            case 1:
-                //dialog öffnen und fragen ob weitere Eingaben ok sind
-                html= '<p><strong>Zwei Fragen noch</strong></p><ol>';
-                html += '<li>zur Situation, in der sich die Material besonders eignet</li>';
-                html += '<li>zu deinen eigenen Erfahrungen mit dem Material</li>';
-                html += '</ol><p>Darf ich die beiden Blöcke an dein Material anfügen?</p>';
-                html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.insertQuests(1690)">Einverstanden</a></p>';
-                html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.insertQuests(-1)">Nein, möchte ich nicht</a></p>';
-
-                RpiMaterialInputTemplate.dialog(html);
-                wp.data.dispatch('core/editor').savePost();
-
-                return false;
-                break;
-            case 2:
-                //dialog öffnen und fragen Selbsteinschätzung abfragen
-
-                html= '<p>Super, du scheinst fertig zu sein. Die Redaktion wird deine Inhalte anhand folgender Kriterien prüfen.</p><ol>';
-                html += '<li>Check 1</li>';
-                html += '<li>Check 2</li>';
-                html += '<li>Check 3</li>';
-                html += '<li>Check 4</li>';
-                html += '<li>Check 5</li>';
-                html += '</ol><p>Wenn du nichts mehr ändern willst, kannst du dein Material jetzt veröffentlichen</p>';
-                html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.checkComplete()">Für mich ist das Material OK.</a></p>';
-                RpiMaterialInputTemplate.dialog(html, 'Selbstprüfung',400,500);
-                return false;
-                break;
-
-            case 3:
-                //veröffentlichen
-                //jQuery('.editor-post-publish-button__button.is-primary').off('click', RpiMaterialInputTemplate.steps);
-                //jQuery('.editor-post-publish-button__button.is-primary').click();
-
-                try{
-                    wp.data.dispatch('core/editor').editPost({status: 'publish'});
-                    wp.data.dispatch('core/editor').savePost();
-                    //jQuery('.editor-post-publish-button__button.is-primary').html('Aktualisieren');
-                }catch(e){
-                    console.log(e);
-                }
-
-               break;
-            default:
-                if(letters > 100){
-                    wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': 1}});
-                    RpiMaterialInputTemplate.steps();
-                }
-                wp.data.dispatch('core/editor').savePost();
-                //jQuery('.editor-post-publish-button__button.is-primary').html('Nächster Schritt');
-
-                return false;
+            wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': step}});
+            wp.data.dispatch('core/editor').savePost();
 
         }
+
+    },
+
+    modal_fill_meta: function (html){
+
+        RpiMaterialInputTemplate.dialog(html);
+        if(jQuery('.acf-postbox.closed').length>0){
+            jQuery('.acf-postbox .toggle-indicator').click();
+        }
+
+
+    },
+    modal_extend_template: function (html){
+
+        RpiMaterialInputTemplate.dialog(html+'<div id="template-reflexion-box"></div>', 'Vorlage anpassen');
+        RpiMaterialInputTemplate.getTemplates('reflexion');
+
+
+    },
+    modal_checklist: function (html){
+        RpiMaterialInputTemplate.dialog(html,'Kriterienliste für den Prüfbericht',500,400);
+
+    },
+
+    steps: function(){
+
+        const CONTENT = 1;
+        const META = 2;
+        const META_CONTENT = 3;
+        const CONTENTREADY = 13;
+        const READY = 23;
+
+        const CONTENTPLUS = 10;
+        const PROOF = 20;
+
+
+        const status = wp.data.select('core/editor').getEditedPostAttribute('status');
+        let workflow = wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
+
+        if(status == 'draft'){
+
+            let step = 0;
+
+            let meta_progress = this.displayMetaProgress();
+            let write_progress = this.displayWritingProgress();
+
+            if(meta_progress.percent > 66) {
+                step = META;
+            }
+            if(write_progress.percent > 66) {
+                step += CONTENT;
+            }
+
+            if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step > 0){
+                step += wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
+            }
+
+
+            console.log('step', step);
+
+            switch (step){
+                case CONTENT:
+
+                    html= '<p><strong>Wie lässt sich dein Material am besten zuordnen?</strong></p>';
+                    html += '<p>Unter der Inhaltseingabe findest du ein anhängendes Fomular mit mehreren Reitern (Urherberschaft, Formal, Inhalt).</p>';
+                    html += '<p>Wenn du dort die passenden Kategorien auswählst oder ergänzt, wird dein Material besser gefunden.</p>';
+                    html += '<a href="#postbox-container-2" onclick="jQuery(\'#TB_closeWindowButton\').click()">Ok, Mach ich!</a>';
+
+                    this.modal_fill_meta(html);
+                    break;
+
+                case META:
+                case META_CONTENT:
+
+                    //dialog öffnen und fragen ob weitere Eingaben ok sind
+                    html=   '<p>Durch Klick auf "Vorlage anpassen", kannst du dein Material erweitern. '+
+                            'Leitfragen helfen dir beim Ausfüllen.</p>';
+
+                    this.modal_extend_template(html);
+                    RpiMaterialInputTemplate.setWorkflow(CONTENTPLUS);
+                    jQuery(window).on('reflexionInserted',()=>{
+                        RpiMaterialInputTemplate.setWorkflow(CONTENTPLUS);
+                    });
+
+                    break;
+                case CONTENTREADY:
+
+                    html= '<p>Du scheinst weitestgehend fertig zu sein. Du kannst dieses Fenster schließen wenn du noch weiter arbeiten möchtest. Die Redaktion wird deine Inhalte anhand folgender Kriterien prüfen.</p><ol>';
+
+                    html += '<li>Kriterium 1</li>';
+                    html += '<li>Kriterium 2</li>';
+                    html += '<li>Kriterium 3</li>';
+                    html += '<li>Kriterium 4</li>';
+                    html += '<li>Kriterium 5</li>';
+                    html += '</ol><p>Wenn du nichts mehr ändern willst, kannst du dein Material jetzt veröffentlichen</p>';
+                    html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.setWorkflow(PROOF)">ich habe die Kriterien beachtet.</a></p>';
+
+                    jQuery('#rpi-material-step').html('Prüfen und Speichern');
+
+                    this.modal_checklist(html);
+                    RpiMaterialInputTemplate.setWorkflow(PROOF);
+                    break;
+                case READY:
+
+                    jQuery('#rpi-material-step').unbind();
+                    jQuery('#rpi-material-step').on('click',()=>{
+                        RpiMaterialInputTemplate.stepsComplete();
+                    });
+                    jQuery('#rpi-material-step').html('Veröffentlichen');
+                    break;
+
+            }
+
+
+        }
+
     },
 
     dialog: function (content='', title='Nächster Schritt',w = 400,h = 300){
@@ -136,9 +252,10 @@ RpiMaterialInputTemplate = {
                 update(block.clientId,{'template':post.slug})
             });
         }
+
     },
 
-    insert:function (id, top){
+    insert:function (id, top=0){
         $=jQuery;
         $.get(
             ajaxurl, {
@@ -162,21 +279,39 @@ RpiMaterialInputTemplate = {
                 }
                 wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
                 RpiMaterialInputTemplate.init();
-                RpiMaterialInputTemplate.resetStaticBlockPositions()
+                RpiMaterialInputTemplate.resetStaticBlockPositions();
+
+                // if(jQuery('#TB_closeWindowButton').length>0){
+                //     jQuery(window).trigger('reflexionInserted');
+                //     jQuery('#TB_closeWindowButton').click();
+                //     setTimeout(()=> {
+                //         wp.data.select('core/block-editor').getBlocks().forEach((block,i)=>{
+                //             if (i==p){
+                //                 document.location.hash = 'block-'+block.clientId;
+                //             }
+                //         })
+                //     },1000);
+                //}
+                RpiMaterialInputTemplate.displayWritingProgress();
             }
 
         );
     },
 
-    getTemplates:function (fn){
+    getTemplates:function (term='checkbox'){
         $=jQuery;
         $.get(
             ajaxurl, {
-                'action': 'getTemplates'
-
+                'action': 'getTemplates',
+                'term':term
             },
             function (response) {
-                $('#template-config-box').html(response);
+                if(term=='checkbox'){
+                    $('#template-config-box').html(response);
+                }else {
+
+                    $('#template-'+term+'-box').html(response);
+                }
                 let blocks = wp.data.select("core/editor").getBlocks();
                 $('.reli-inserter').each((i,elem)=>{
                     let templ = $(elem).attr('data');
@@ -189,8 +324,6 @@ RpiMaterialInputTemplate = {
                         }
                     }
                 });
-                if(fn)
-                    fn();
 
             },
 
@@ -211,8 +344,10 @@ RpiMaterialInputTemplate = {
                 wp.data.select('core/block-editor').getBlockSelectionStart();
             }
         }
+        this.displayWritingProgress();
         this.init();
         this.resetStaticBlockPositions();
+
     },
     resetStaticBlockPositions: function (){
 
@@ -238,7 +373,7 @@ RpiMaterialInputTemplate = {
         for(i=0;i<z;i++){
             wp.data.dispatch('core/block-editor').moveBlocksDown([block.clientId])
         }
-        this.lock(block);
+        //this.lock(block);
     },
     moveTop: function (block){
         const z = wp.data.select('core/block-editor').getBlocks().length;
@@ -249,7 +384,7 @@ RpiMaterialInputTemplate = {
         this.lock(block);
     },
     lock: function (block){
-        block.attributes.lock ={insert:true,move:true,remove:true};
+        block.attributes.lock ={move:true,remove:true};
         wp.data.dispatch('core/block-editor').replaceBlock(block.clientId,block);
     },
     unlock: function (block){
@@ -429,6 +564,9 @@ RpiMaterialInputTemplate = {
                 });
             }
         });
+    },
+    onContentChange: function (e){
+
     }
 
 
@@ -437,6 +575,7 @@ RpiMaterialInputTemplate = {
 wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
 
    jQuery(window).on('editorBlocksChanged',RpiMaterialInputTemplate.setTemplateAttributes);
+   jQuery(window).on('editorContentChanged',RpiMaterialInputTemplate.onContentChange);
 
 });
 
@@ -462,6 +601,16 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
     var post_id = wp.data.select("core/editor").getCurrentPostId();
 
     jQuery(document).ready(function ($) {
+
+        location.hash='gettemplates';
+        location.hash='';
+
+        $(window).bind( 'hashchange', function(e) {
+            if(location.hash=='#gettemplates'){
+                $('#template-config-toggle').click();
+            }
+        });
+
 
         //blockeditor ui aufräumen nicht core Zeugs ausblenden;
 
@@ -534,9 +683,11 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     wp.domReady(() => {
 
+        return;
+
         const editor = wp.data.select('core/block-editor');
         let blockList = editor.getClientIdsWithDescendants();
-        let blockcontent = '';
+        let blockcontent = wp.data.select('core/editor').getCurrentPostAttribute('content');
         let authorID =wp.data.select('core/editor').getCurrentPostAttribute('author');
         wp.data.subscribe(() => {
 
@@ -551,8 +702,8 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     editor.getBlockHierarchyRootClientId(editor.getSelectedBlockClientId())
                 );
 
-                const newHTML = jQuery('#block-'+currblock.clientId).html();
-                const contentChanged = newHTML !== blockcontent;
+                const newHTML = wp.data.select('core/editor').getEditedPostContent();
+                let contentChanged = (newHTML != blockcontent);
                 blockcontent = newHTML;
 
                 const newBlockList = editor.getClientIdsWithDescendants();
@@ -562,6 +713,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
                 if (blockListChanged) {
                     jQuery(window).trigger('editorBlocksChanged', [currblock, editor.getBlocks()]);
+                    RpiMaterialInputTemplate.displayWritingProgress();
                 }
                 if(contentChanged){
                     jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
