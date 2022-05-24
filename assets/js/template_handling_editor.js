@@ -2,7 +2,7 @@
  * @author Joachim happel
  */
 RpiMaterialInputTemplate = {
-    workflow:false,
+    has_workflow:false,
     init:function (){
         this.getTemplates();
         this.init_workflow();
@@ -15,8 +15,8 @@ RpiMaterialInputTemplate = {
         if($('#rpi-material-status').length === 0){
             $('.rpi-material-toolbar').append('<div id="rpi-material-status" class="components-button">Status: &nbsp; '+
                 '<div id="rpi-material-status-bar" style="border:1px solid #ccc; width:150px; display: grid;grid-template-columns: 3fr 1fr;">'+
-                '<div id="rpi-material-status-progress" style="width:10px; height:15px; background:orange;"></div>'+
-                '<div id="rpi-material-meta-progress" style="width:1px; height:15px; background:orangered;"></div>'+
+                '<div id="rpi-material-status-progress" style="width:10px; height:15px; background:greenyellow;"></div>'+
+                '<div id="rpi-material-meta-progress" style="width:1px; height:15px; background:forestgreen;"></div>'+
                 '</div></div>');
             $('.rpi-material-toolbar').append('<div class="components-button" style="border-right: 1px solid #ccc;">&nbsp;</div>');
             $('.rpi-material-toolbar').append('<button id="rpi-material-step" class="components-button is-primary">Speichern</button>');
@@ -35,8 +35,8 @@ RpiMaterialInputTemplate = {
     },
 
     init_workflow: function(){
-        if(!this.workflow){
-            this.workflow = true;
+        if(!this.has_workflow){
+            this.has_workflow = true;
 
 
 
@@ -142,6 +142,71 @@ RpiMaterialInputTemplate = {
         RpiMaterialInputTemplate.dialog(html,'Kriterienliste für den Prüfbericht',500,400);
 
     },
+    workflow:[],
+    /**
+     * @parem slug unique name of the worklfow step
+     * @param startcondition equal of properties {prop1:prop2, prop11:prop22} which triggers startfn
+     * @param startfn function
+     * @param endcondition equal of properties {prop1:prop2, prop11:prop22} which triggers endfn
+     * @param endfn function
+     */
+    addWorkflowStep: function (slug, startcondition={},startfn,endcondition={}, endfn){
+
+        let wfs = {
+            step: slug,
+
+            if_start: startcondition,
+            if_end: startcondition,
+
+            triggerStart: function (e){
+                startfn();
+            },
+            onEnd: function (e){
+                endfn();
+            },
+        };
+        this.workflow.push(wfs);
+    },
+    doSteps:function (){
+
+        this.workflow.forEach((wfs)=>{this.doStep(wfs)});
+
+    },
+    doStep:function (wfs){
+
+        let is_start = true;
+        wfs.if_start.forEach(condition=>{
+            const [prop1, prop2] = entry;
+            if (prop1 != prop2){
+                is_start = false;
+            }
+        });
+
+        let is_end = true;
+        wfs.if_end.forEach(condition=>{
+            const [prop1, prop2] = entry;
+            if (prop1 != prop2){
+                is_start = false;
+            }
+        });
+
+        if(is_end){
+            wfs.onEnd(wfs);
+        }
+
+        if(is_start && !is_end){
+            wfs.onEnd(wfs);
+        }
+
+    },
+    finishStep: function(slug){
+        this.workflow.forEach((wfs)=>{
+            if(wfs.slug == slug){
+                wfs.onEnd(wfs);
+            }
+
+        });
+    },
 
     steps: function(){
 
@@ -177,6 +242,10 @@ RpiMaterialInputTemplate = {
             }
 
 
+            if(step>META_CONTENT &&step <CONTENTREADY){
+                this.setWorkflow(CONTENTPLUS);
+                step = CONTENTREADY;
+            }
             console.log('step', step);
 
             switch (step){
@@ -214,15 +283,16 @@ RpiMaterialInputTemplate = {
                     html += '<li>Kriterium 4</li>';
                     html += '<li>Kriterium 5</li>';
                     html += '</ol><p>Wenn du nichts mehr ändern willst, kannst du dein Material jetzt veröffentlichen</p>';
-                    html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.setWorkflow(PROOF)">ich habe die Kriterien beachtet.</a></p>';
+                    html += '<p><a class="button" href="javascript:RpiMaterialInputTemplate.setWorkflow(20);jQuery(\'#rpi-material-step\').html(\'Veröffentlichen\')">ich habe die Kriterien beachtet.</a></p>';
 
-                    jQuery('#rpi-material-step').html('Prüfen und Speichern');
+                    jQuery('#rpi-material-step').html('Prüfen');
+                    jQuery('.editor-post-save-draft').show();
 
                     this.modal_checklist(html);
-                    RpiMaterialInputTemplate.setWorkflow(PROOF);
+                    //RpiMaterialInputTemplate.setWorkflow(PROOF);
                     break;
                 case READY:
-
+                    jQuery('.editor-post-save-draft').show();
                     jQuery('#rpi-material-step').unbind();
                     jQuery('#rpi-material-step').on('click',()=>{
                         RpiMaterialInputTemplate.stepsComplete();
