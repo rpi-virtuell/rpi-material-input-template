@@ -118,3 +118,29 @@
 
 }
 
+/**
+Quellennachweis Block
+ */
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-btn-drag {
+    top: 156%!important;
+    left: -5px!important;
+    font-size: 20px!important;
+}
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-btn{
+    font-size: 0;
+    padding:0!important;
+}
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-item-content{
+    margin-top: -15px!important;
+    margin-left: -0px!important;
+}
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-item-content input[type="text"] {
+    border: 1px solid lightskyblue !important;
+}
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-item-content select {
+    border: 1px solid lightskyblue !important;
+    height:35px!important;
+}
+.lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-item-content div{
+    border:0!important;
+}
