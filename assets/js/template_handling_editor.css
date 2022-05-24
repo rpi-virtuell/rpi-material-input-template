@@ -1,4 +1,4 @@
-.reli-inserter a{
+.reli-inserter a {
     text-decoration: none;
     border: 1px solid dodgerblue;
     width: 15px;
@@ -7,24 +7,28 @@
     height: 15px;
     margin-right: 5px;
 }
-.reli-inserter.remove a{
+
+.reli-inserter.remove a {
     color: red;
     font-size: 20px;
     line-height: 0.3;
     padding-left: 2px;
 }
-.reli-inserter a:after{
-    content:' '
+
+.reli-inserter a:after {
+    content: ' '
 }
-.reli-inserter.remove a:after{
-    content:'x'
+
+.reli-inserter.remove a:after {
+    content: 'x'
 }
+
 #editor .rpi-material-toolbar {
     /*width: 100%;*/
     position: relative;
 }
 
-#template-config-box{
+#template-config-box {
     position: absolute;
     z-index: 20;
     top: 60px;
@@ -35,11 +39,12 @@
     display: none;
 }
 
-.is-tertiary{
+.is-tertiary {
     /*border:1px solid #006BA1;*/
 }
-.block-header input{
-    font-family:  'Architects Daughter', Sans-Serif!important;
+
+.block-header input {
+    font-family: 'Architects Daughter', Sans-Serif !important;
     color: var(--headings-color);
 }
 
@@ -54,6 +59,7 @@
     display: block;
     width: 100%;
 }
+
 .wp-block-post-featured-image img {
     max-width: 100%;
     height: auto;
@@ -61,12 +67,19 @@
     box-shadow: 2px 2px 13px 2px rgba(0, 0, 0, 0.3);
 }
 
-.tooltip{
+.tooltip {
+    color: #00a66f;
     position: relative;
     display: inline-block;
-    border-bottom: 1px dotted black;
+    border-bottom: 1px dotted #00a66f;
 }
-.tooltip-box{
+
+.tooltip:hover {
+    color: #e830b5;
+    border-bottom: 1px dotted #e830b5;
+}
+
+.tooltip-box {
     visibility: hidden;
     width: 300px;
     background-color: #555;
@@ -83,17 +96,19 @@
     opacity: 0;
     transition: opacity 0.3s;
 }
-.tooltip-box > *{
+
+.tooltip-box > * {
     text-align: center;
 }
-.tooltip-box a{
+
+.tooltip-box a {
     color: white;
 }
-.tooltip:hover .tooltip-box{
+
+.tooltip:hover .tooltip-box {
     visibility: visible;
     opacity: 1;
 }
-
 
 
 .lazyblock .rich-text [data-rich-text-placeholder]::after {
