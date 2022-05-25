@@ -83,12 +83,20 @@ RpiMaterialInputTemplate = {
 
     checkMeta: function (){
 
-        //Stichproben aus jedem Bereich
-        let has_urheber = wp.data.select('core/editor').getEditedPostAttribute('lizenz').length > 0 ? 1:0;
-        let has_alter = wp.data.select('core/editor').getEditedPostAttribute('alter').length > 0? 1:0;
-        let has_anlass = wp.data.select('core/editor').getEditedPostAttribute('anlass').length > 0?  1:0;
+        var filled =[], total=[], value;
+        acf.getFields().forEach((field)=>{
+            console.log(field.data.type);
+            if(field.data.type == 'select' ||field.data.type == 'checkbox' || field.data.type == 'taxonomy' ){
+                total.push(field.data.name);
+                value = field.val()
+                if(value && value != ''){
+                    filled.push(field.data.name);
+                }
+            }
+        })
 
-        return {percent: (has_urheber + has_alter + has_anlass)*100/3 ,has_urheber:has_urheber,has_alter:has_alter,has_anlass:has_anlass};
+
+        return {percent: filled.length * 100 / total.length};
     },
     displayWritingProgress: function (){
         let progress = this.checkBlocksStartWriting();
@@ -335,6 +343,7 @@ RpiMaterialInputTemplate = {
             function (response) {
                 let contentpart = response;
                 let new_blocks =[];
+                let mark_blocks =[];
                 let content = wp.data.select("core/editor").getCurrentPost().content;
                 if(top == 1){
                     new_blocks = wp.blocks.parse( contentpart );
@@ -344,12 +353,25 @@ RpiMaterialInputTemplate = {
                 }else{
                     new_blocks=wp.data.select("core/editor").getBlocks();
                     for (const newBlock of wp.blocks.parse( contentpart )) {
-                        new_blocks.push(newBlock)
+
+                        new_blocks.push(newBlock);
+                        mark_blocks.push(newBlock);
                     }
                 }
                 wp.data.dispatch( 'core/editor' ).resetBlocks( new_blocks );
+                mark_blocks.forEach((b)=>{
+                    $('#block-'+b.clientId).addClass('highlight');
+                    location.hash = 'block-'+b.clientId;
+                });
+                setTimeout(()=>{
+                    $('.highlight').removeClass('highlight');
+                },10000);
+                $('.highlight').on('click',(e)=>{
+                    $(e.target).removeClass('highlight');
+                });
                 RpiMaterialInputTemplate.init();
                 RpiMaterialInputTemplate.resetStaticBlockPositions();
+
 
                 // if(jQuery('#TB_closeWindowButton').length>0){
                 //     jQuery(window).trigger('reflexionInserted');
@@ -681,7 +703,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             }
         });
 
-
         //blockeditor ui aufräumen nicht core Zeugs ausblenden;
 
         $('.interface-pinned-items button').css({'display':'none'});
@@ -700,6 +721,12 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         $('.interface-pinned-items button.is-pressed').click();
 
 
+        $('#postbox-container-2').on('click',(e)=>{
+            RpiMaterialInputTemplate.displayMetaProgress();
+        });
+        $('.edit-post-visual-editor__content-area').on('click',(e)=>{
+            RpiMaterialInputTemplate.displayWritingProgress();
+        });
 
         $('.editor-styles-wrapper.block-editor-writing-flow').click(()=>{
             if(!wp.data.select('core/block-editor').getSelectedBlock()){

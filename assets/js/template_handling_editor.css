@@ -119,6 +119,14 @@
 }
 
 /**
+Highlight blocks after insert
+ */
+.highlight{
+    background-color: lightgoldenrodyellow;
+    border:3px solid yellow;
+}
+
+/**
 Quellennachweis Block
  */
 .lzb-gutenberg-repeater-item .lzb-gutenberg-repeater-btn-drag {
