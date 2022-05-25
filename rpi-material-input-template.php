@@ -28,6 +28,7 @@ class RpiMaterialInputTemplate
         add_action('admin_head', array($this, 'supply_option_data_to_js'));
 
         add_action('admin_init', array($this, 'check_for_broken_blocks'));
+        add_action('save_post', array($this, 'add_template_att_to_blocks'), 10, 3);
 
         add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
@@ -407,6 +408,18 @@ class RpiMaterialInputTemplate
         </style>';
 
 
+    }
+
+    public function add_template_att_to_blocks($post_ID, $post, $update){
+        if (is_a($post, 'WP_Post') && $post->post_type === 'materialtyp_template')
+        {
+            $blocks = parse_blocks($post->post_content);
+            foreach ($blocks as $block_key => $block)
+            {
+                $blocks[$block_key]['attrs']['template'] = $post->post_name;
+            }
+            $post->post_content = serialize_blocks($blocks);
+        }
     }
 
     public function check_for_broken_blocks()
