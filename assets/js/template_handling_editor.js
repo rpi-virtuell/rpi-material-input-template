@@ -800,7 +800,7 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                 );
 
                 const newHTML = wp.data.select('core/editor').getEditedPostContent();
-                let contentChanged = (newHTML != blockcontent);
+                const contentChanged = (newHTML != blockcontent);
                 blockcontent = newHTML;
 
                 const newBlockList = editor.getClientIdsWithDescendants();
@@ -813,7 +813,8 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     RpiMaterialInputTemplate.displayWritingProgress();
                 }
                 if(contentChanged){
-                    jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
+                    console.log('contentChanged',currblock.clientId )
+                    //jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
                 }
 
             }else{

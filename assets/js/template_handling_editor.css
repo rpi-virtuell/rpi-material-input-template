@@ -113,7 +113,7 @@
 
 .lazyblock .rich-text [data-rich-text-placeholder]::after {
 
-    content: 'Tippe deine Antwort oder füge deine Inhalte hier ein' !important;
+    content: 'Tippe oder füge deine Inhalte hier ein. (Du kannst auch Dateien/Bilder hier her ziehen)' !important;
     opacity: .62;
 
 }
