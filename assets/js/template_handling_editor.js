@@ -755,7 +755,68 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         RpiMaterialInputTemplate.doWith_ACF_Fields($);
 
 
+        $(window).on('keyup',(e)=>{
+            //if($(e.target).attr('contantedetable')){}
 
+            var block =  wp.data.select('core/editor').getSelectedBlock();
+            if(!block){
+                return;
+            }
+
+            var parent_id = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
+            var main_block = wp.data.select('core/editor').getBlock(parent_id);
+
+            if(main_block.attributes.is_teaser){
+                var text = jQuery('#block-'+ parent_id +' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi,'');
+                var post_id = wp.data.select('core/editor').getCurrentPost().id;
+                wp.data.dispatch('core/editor').editPost({'id':post_id,'excerpt':text });
+            }
+
+            /**
+             * Blockeingabe überprüfen udn feedback geben
+             */
+            if(main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters >0){
+
+                var $el = jQuery('#block-'+ parent_id +' .lazyblock');
+                console.log(main_block.attributes.is_valid);
+
+                if(typeof e.target.attributes.contenteditable.value != "undefined"){
+                    //console.log(e.target.innerHTML.replace(/(<[^>]*>)/ig,''));
+                    if(!main_block.contentBlocks) {
+                        main_block.contentBlocks = {};
+                    }
+                    let text = e.target.innerHTML.replace(/(<[^>]*>)/ig,'');
+                    main_block.contentBlocks[block.clientId]=text.length;
+                }
+                var len = Object.values(main_block.contentBlocks).reduce((a, b) => a + b, 0);
+
+                var percent = len * 100 /main_block.attributes.minimum_characters;
+                console.log(percent,len,main_block.attributes.minimum_characters);
+                if(percent>100) percent =100;
+
+                if(jQuery('#progress-'+ parent_id).length===0){
+                    jQuery('<div id="progress-'+ parent_id +'" class="block-progress"></div>')
+                        .insertBefore( $el );
+                }
+                jQuery('#progress-'+ parent_id).css({'border-bottom':'3px solid green','width':percent+'%'});
+
+                if(percent == 100){
+                    $el.addClass('is_valid');
+                    wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id,{'is_valid':true});
+                    jQuery('#progress-'+ parent_id).remove();
+
+                }
+            }
+
+        });
+
+
+        wp.data.select("core/editor").getBlocks().forEach((b)=>{
+            if(b.attributes.is_valid){
+                console.log('first fetch',b.attributes);
+                $('#block-'+b.clientId +' .lazyblock').addClass('is_valid');
+            }
+        });
     });
 
     //acf-field-user mit wp author id setzen
