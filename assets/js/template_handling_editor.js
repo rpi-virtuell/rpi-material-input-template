@@ -57,52 +57,47 @@ RpiMaterialInputTemplate = {
         jQuery('.editor-post-save-draft').show();
     },
 
-    checkBlocksStartWriting: function (){
-        const $ = jQuery;
-        const blocks =  wp.data.select('core/block-editor').getBlocks().filter((b)=> b.name.indexOf('lazyblock/reli-')===0);
-        let started = [], not_started =[];
-
-        blocks.forEach((block, i)=>{
-
-            if(i < blocks.length-1){
-                var content ='';
-                block.innerBlocks.forEach((b)=>content += $('#block-'+b.clientId).html());
-
-                if(content && content.replace(/(<([^>]+)>)/gi, "").length > 70 ){
-                    started.push(block);
-                }else if(content && content.match(/<figure>/g)){
-                    started.push(block);
-                }else{
-                    not_started.push(block);
-                }
-            }
-        });
-        return { percent: ( started.length * 100 / (blocks.length-1) ),started:started , not_started:not_started };
-
-    },
 
     checkMeta: function (){
+        const $ = jQuery;
+        const fieldsToCheck =[
+            'lizenz',
+            'materialtype',
+            'alter',
+            'kinderaktivitaten',
+            'kinderfahrung'
+        ];
 
         var filled =[], total=[], value;
         acf.getFields().forEach((field)=>{
-            console.log(field.data.type);
-            if(field.data.type == 'select' ||field.data.type == 'checkbox' || field.data.type == 'taxonomy' ){
-                total.push(field.data.name);
-                value = field.val()
-                if(value && value != ''){
-                    filled.push(field.data.name);
+
+            if(fieldsToCheck.includes(field.data.name)){
+                if(! $('#acf-field-toCheck-'+field.data.name).length){
+                    field.$el.css({position: 'relative'});
+                    $('<div id="acf-field-toCheck-'+field.data.name+'" class="acf-field-toCheck"></div>').insertBefore(field.$el.find('label').first());
+                }
+
+                if(field.data.type == 'select' ||field.data.type == 'checkbox' || field.data.type == 'taxonomy' ){
+                    total.push(field.data.name);
+                    value = field.val()
+                    if(value && value != ''){
+                        filled.push(field.data.name);
+                    }
                 }
             }
+
         })
-
-
         return {percent: filled.length * 100 / total.length};
     },
     displayWritingProgress: function (){
-        let progress = this.checkBlocksStartWriting();
-        jQuery('#rpi-material-status-progress').css({width:progress.percent+'%', 'max.width':'100%'});
-        jQuery('#rpi-material-status-progress').attr('title', progress.percent+ '% begonnener Schreibprozess');
-        return progress;
+        let total = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.minimum_characters>0);
+        let ok = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.is_valid);
+        let percent = ok.length * 100 /total.length;
+        console.log(percent,ok,total);
+
+        jQuery('#rpi-material-status-progress').css({'width': percent+'%', 'max.width':'100%'});
+        jQuery('#rpi-material-status-progress').attr('title', percent+ '% begonnener Schreibprozess');
+        return {percent:percent};
     },
     displayMetaProgress: function (){
         let progress = this.checkMeta();
@@ -120,13 +115,13 @@ RpiMaterialInputTemplate = {
     },
     setWorkflow: function (step){
 
-
-        if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step != step){
-
-            wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': step}});
-            wp.data.dispatch('core/editor').savePost();
-
-        }
+        //
+        // if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step != step){
+        //
+        //     wp.data.dispatch('core/editor').editPost({meta: {'workflow_step': step}});
+        //     wp.data.dispatch('core/editor').savePost();
+        //
+        // }
 
     },
 
@@ -150,73 +145,12 @@ RpiMaterialInputTemplate = {
         RpiMaterialInputTemplate.dialog(html,'Kriterienliste für den Prüfbericht',500,400);
 
     },
-    workflow:[],
-    /**
-     * @parem slug unique name of the worklfow step
-     * @param startcondition equal of properties {prop1:prop2, prop11:prop22} which triggers startfn
-     * @param startfn function
-     * @param endcondition equal of properties {prop1:prop2, prop11:prop22} which triggers endfn
-     * @param endfn function
-     */
-    addWorkflowStep: function (slug, startcondition={},startfn,endcondition={}, endfn){
 
-        let wfs = {
-            step: slug,
-
-            if_start: startcondition,
-            if_end: startcondition,
-
-            triggerStart: function (e){
-                startfn();
-            },
-            onEnd: function (e){
-                endfn();
-            },
-        };
-        this.workflow.push(wfs);
-    },
-    doSteps:function (){
-
-        this.workflow.forEach((wfs)=>{this.doStep(wfs)});
-
-    },
-    doStep:function (wfs){
-
-        let is_start = true;
-        wfs.if_start.forEach(condition=>{
-            const [prop1, prop2] = entry;
-            if (prop1 != prop2){
-                is_start = false;
-            }
-        });
-
-        let is_end = true;
-        wfs.if_end.forEach(condition=>{
-            const [prop1, prop2] = entry;
-            if (prop1 != prop2){
-                is_start = false;
-            }
-        });
-
-        if(is_end){
-            wfs.onEnd(wfs);
-        }
-
-        if(is_start && !is_end){
-            wfs.onEnd(wfs);
-        }
-
-    },
-    finishStep: function(slug){
-        this.workflow.forEach((wfs)=>{
-            if(wfs.slug == slug){
-                wfs.onEnd(wfs);
-            }
-
-        });
-    },
 
     steps: function(){
+
+        RpiWorkflow.init();
+        return;
 
         const CONTENT = 1;
         const META = 2;
@@ -229,7 +163,7 @@ RpiMaterialInputTemplate = {
 
 
         const status = wp.data.select('core/editor').getEditedPostAttribute('status');
-        let workflow = wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
+        //let workflow = wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
 
         if(status == 'draft'){
 
@@ -245,9 +179,9 @@ RpiMaterialInputTemplate = {
                 step += CONTENT;
             }
 
-            if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step > 0){
-                step += wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
-            }
+            // if(wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step > 0){
+            //     step += wp.data.select('core/editor').getEditedPostAttribute('meta').workflow_step;
+            // }
 
 
             if(step>META_CONTENT &&step <CONTENTREADY){
@@ -663,6 +597,236 @@ RpiMaterialInputTemplate = {
 
 
 }
+jQuery(document).ready(($)=>{
+
+    RpiWorkflow.addWorkflowStep(
+        'writecontenet',
+        [
+            ()=>!wp.data.select('core/block-editor').hasSelectedBlock(),
+            ()=>wp.data.select('core/editor').getEditedPostContent().length == wp.data.select('core/editor').getCurrentPostAttribute('content').length,
+            ()=>RpiWorkflow.counter>1
+        ],
+        function (wfs){
+            //Startdialog
+            $dialog = RpiWorkflow.dialog({
+                content:'Klicke auf einen der Inhaltsblöcke und beginne mit deiner Eingabe, Du kannst übrigens auch Bilder und einbinden, indem du sie auf die Eingabeaufforderung ziehst',
+                w:200,
+                h:100,
+                button: 'Ok, verstanden'
+            });
+            console.log($dialog)
+            if(!wfs.finished )
+                setTimeout(()=>{ if(!$dialog.is_open()) wfs.started = false},20000 );
+        },
+        [
+            ()=>wp.data.select('core/block-editor').hasSelectedBlock(),
+            ()=>wp.data.select('core/editor').getEditedPostContent().length - wp.data.select('core/editor').getCurrentPostAttribute('content').length > 0
+        ],
+        function (wfs){
+            //Startdialog
+            $dialog =  RpiWorkflow.dialog({
+                content:'Super, Su hast selbst herausgefunden, wo man Inhalte eingibt! Du kannst übrigens auch Bilder und einbinden, indem du sie auf die Eingabeaufforderung ziehst',
+                w:300,
+                h:200,
+                button: 'War nicht schwer'
+            });
+            $dialog.btn.click((e)=> wfs.finish());
+        },
+    );
+
+});
+
+RpiWorkflow ={
+
+    workflow:[],
+
+    /**
+     * @parem slug unique name of the worklfow step
+     * @param startconditions   array of functions that return bool e.g: [(step)=>!step.percent]
+     * @param startfn function  e.g. (step)=>{ RpiWorkflow.dialog('jetzt geht es los'); step.percent=1; }
+     * @param endconditions     array of functions that return bool e.g: [(step)=>step.percent > 99]
+     * @param endfn function    e.g. (step)=>RpiWorkflow.dialog('Du hast es geschafft')
+     * @param properties        array of properties  eg ['percent']
+     */
+    addWorkflowStep: function (slug='',
+                               startconditions=[()=>true],
+                               startfn = (wfs)=>{ wfs.started =true },
+                               endconditions=[()=>false],
+                               endfn = (wfs)=>{wfs.finish()},
+                               properties = []
+    ){
+        let wfs = {
+            step: slug,
+
+            start: startconditions,
+            end: endconditions,
+
+            do_start: function (){
+                if(wfs.started || wfs.finished){
+                    return;
+                }
+                startfn(wfs);
+
+            },
+            do_end: function (wfs){
+                if(!wfs.finished){
+                    endfn(wfs);
+                }
+
+            },
+            finish: function (){
+                this.finished = true;
+                RpiWorkflow.setMeta(this)
+            },
+
+            started:false,
+            finished:false,
+            poperties: properties,
+        };
+        this.workflow.push(wfs);
+    },
+
+    is_running: false,
+    counter: 0,
+
+    init: function (){
+        if(!this.is_running){
+            window.__RpiWorkflow = setInterval(()=>{
+                this.run();
+            },5000);
+            this.is_running =true;
+        }
+    },
+
+    run: function(){
+        RpiWorkflow.counter ++;
+
+        for(const wfs of this.workflow){
+
+            if(RpiWorkflow.counter<1){
+                wfs.finished = RpiWorkflow.getMeta(wfs);
+            }
+
+            if(wfs.finished || RpiWorkflow.getMeta(wfs)){
+                continue;
+            }
+
+            //check endconditions
+            if(this.is_met(wfs.end)){
+                wfs.do_end(wfs);
+            }
+            //check startconditions
+            if(this.is_met(wfs.start) && !wfs.started){
+                wfs.do_start(wfs);
+            }
+        }
+    },
+
+    is_met: function (conditions){
+        var is_met = true;
+
+        //all conditions should be true
+        for(const condition of conditions){
+            if(!condition()){
+                is_met = false;
+            }
+        }
+        return is_met;
+    },
+
+    _get:function (slug){
+        for(wfs of this.workflow){
+            if(wfs.step == slug){
+                return(wfs);
+            }
+
+        };
+    },
+
+    get: function (slug, property){
+        let wfs = this._get(slug);
+        return wfs[property];
+    },
+    set: function (slug, property,value){
+        let wfs = this._get(slug);
+        wfs[property] = value;
+    },
+
+    start:function (wfs){
+        wfs.do_start(wfs);
+    },
+
+    finish: function(wfs){
+        if (typeof wfs === 'string' || wfs instanceof String){
+            console.log(wfs, this.workflow);
+            wfs = this._get(wfs);
+            console.log(wfs);
+        }
+        wfs.do_end(wfs);
+    },
+
+    dialog: function (args={title:'',content:'',w:400,h:300,button:'OK',step:null}){
+        args = {
+            title:args.title    ||'Hilfe' ,
+            content:args.content||'',
+            w:args.w            ||400,
+            h:args.h            ||300,
+            button:args.button  ||'OK',
+            step:args.step      ||null
+        };
+
+
+        tb_show(args.title, '#TB_inline?width='+args.w+'&height='+args.h);
+        jQuery(document).find('#TB_window').width(TB_WIDTH).height(TB_HEIGHT).css('margin-left', - TB_WIDTH / 2);
+        jQuery('#TB_ajaxContent').html(args.content);
+
+        if(jQuery('#tb_bottom_bar_btn').length === 0){
+
+            jQuery('<div class="tb_bottom_bar"><button id="tb_bottom_bar_btn" class="button is_primary">'+args.button+'</button></div>').insertAfter(jQuery('#TB_ajaxContent'));
+
+            jQuery('#tb_bottom_bar_btn').click((e)=>{
+
+                if(args.step !== null){
+                    RpiWorkflow.finish(args.step);
+                }
+                tb_remove();
+            });
+
+        }
+        return {btn:jQuery('#tb_bottom_bar_btn'),content:jQuery('#TB_ajaxContent'), is_open:()=>jQuery('#TB_window').css('visibility')=='visible'};
+
+    },
+
+    getMeta: function (wfs){
+        let user = wp.data.select("core").getCurrentUser();
+        let user_steps = user.meta.workflow_step;
+        let post_id =  wp.data.select("core/editor").getCurrentPostId();
+        for(const user_step of user_steps){
+            if(user_step.step == wfs.step && user_step.post_id == post_id){
+                return(user_step.finished);
+            }
+        };
+        return false;
+    },
+    setMeta: function (wfs){
+        let user = wp.data.select("core").getCurrentUser();
+        let user_steps = user.meta.workflow_step;
+        let post_id =  wp.data.select("core/editor").getCurrentPostId();
+        updates = [];
+        for(const user_step of user_steps){
+            if(user_step.step == wfs.step && user_step.post_id == post_id){
+
+            }else{
+                updates.push(user_step)
+            }
+        }
+        updates.push({post_id:post_id,step:wfs.step,finished:wfs.finished});
+        user.meta.workflow_step = updates;
+        wp.data.dispatch("core").saveUser(user);
+    },
+    do_nothing: function (){}
+
+}
 
 wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
 
@@ -756,7 +920,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
 
         $(window).on('keyup',(e)=>{
-            //if($(e.target).attr('contantedetable')){}
 
             var block =  wp.data.select('core/editor').getSelectedBlock();
             if(!block){
@@ -766,6 +929,12 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             var parent_id = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
             var main_block = wp.data.select('core/editor').getBlock(parent_id);
 
+            $(window).trigger('typing',[parent_id,main_block]);
+
+            /**
+             * excerpt aus Block schreiben, wenn is_teaser == true
+             */
+
             if(main_block.attributes.is_teaser){
                 var text = jQuery('#block-'+ parent_id +' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi,'');
                 var post_id = wp.data.select('core/editor').getCurrentPost().id;
@@ -773,38 +942,45 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             }
 
             /**
-             * Blockeingabe überprüfen udn feedback geben
+             * Blockeingabe überprüfen und Fortschritt im übergeordneten Lazyblock anzeigen
              */
             if(main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters >0){
 
+                //$el = zugehöriger html block als jQuery Element
                 var $el = jQuery('#block-'+ parent_id +' .lazyblock');
-                console.log(main_block.attributes.is_valid);
 
+                //innerhalb des editierbaren bereiches prüfen
                 if(typeof e.target.attributes.contenteditable.value != "undefined"){
-                    //console.log(e.target.innerHTML.replace(/(<[^>]*>)/ig,''));
+
+                    //temporäre Block Eigenschaft in der die Zeichenlängen aller innerBlocks gespeichert werden
                     if(!main_block.contentBlocks) {
                         main_block.contentBlocks = {};
                     }
                     let text = e.target.innerHTML.replace(/(<[^>]*>)/ig,'');
                     main_block.contentBlocks[block.clientId]=text.length;
                 }
-                var len = Object.values(main_block.contentBlocks).reduce((a, b) => a + b, 0);
+                //Zeichenlängen aller innerBlocks summieren
+                //https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
+                var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
 
+                //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
+                //gesetzten minimalen Zeichenlänge
                 var percent = len * 100 /main_block.attributes.minimum_characters;
-                console.log(percent,len,main_block.attributes.minimum_characters);
                 if(percent>100) percent =100;
 
+                //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
                 if(jQuery('#progress-'+ parent_id).length===0){
                     jQuery('<div id="progress-'+ parent_id +'" class="block-progress"></div>')
                         .insertBefore( $el );
                 }
                 jQuery('#progress-'+ parent_id).css({'border-bottom':'3px solid green','width':percent+'%'});
 
+                //Wenn 100% Fortschritt erreicht sind:
                 if(percent == 100){
+                    $(window).trigger('write_progress',[$el[0],$(window).trigger('typing',[parent_id,main_block])]);
                     $el.addClass('is_valid');
                     wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id,{'is_valid':true});
                     jQuery('#progress-'+ parent_id).remove();
-
                 }
             }
 

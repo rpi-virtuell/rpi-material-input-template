@@ -127,7 +127,27 @@
     right: 1px;
     text-align: right;
 }
-
+.acf-field-toCheck:before{
+    content:"Bitte ausfüllen";
+    position: absolute;
+    top: -3px;
+    right: 1px;
+    text-align: right;
+    color: green;
+}
+/**
+dialog tickbox modifications
+ */
+.tb_bottom_bar{
+    width:100%;
+    display: block;
+    background-color: #ccc;
+    text-align: center;
+    padding: 3px 0px;
+}
+.tb_bottom_bar button{
+    min-width: 100px;
+}
 /**
 Highlight blocks after insert
  */

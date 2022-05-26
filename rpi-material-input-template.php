@@ -121,13 +121,6 @@ class RpiMaterialInputTemplate
 
         register_post_type("materialien", $args);
 
-        register_post_meta('materialien', 'workflow_step', array(
-            'show_in_rest' => true,
-            'single' => true,
-            'type' => 'number',
-            'default' => 0
-        ));
-
         $labels = [
             "name" => __("Vorlagen Interview", "blocksy"),
             "singular_name" => __("Vorlage", "blocksy"),
@@ -208,6 +201,30 @@ class RpiMaterialInputTemplate
             ),
         ];
         register_taxonomy("organisation", ["materialien"], $args);
+
+
+
+
+	    register_meta('user', 'workflow_step', array(
+		    'single' => true,
+		    'type' => 'array',
+		    'show_in_rest' => array(
+			    'schema' => array(
+				    'type'  => 'array',
+				    'items' => array(
+					    'type' => 'object',
+					    'properties' => array(
+						    'post_id'=>['type'=>'number'],
+						    'step'=>['type'=>'string'],
+						    'finished'=>['type'=>'boolean'],
+					    ),
+					    'additionalProperties' => true
+				    ),
+			    )
+		    ),
+	    ));
+
+
 
 
     }
@@ -312,6 +329,7 @@ class RpiMaterialInputTemplate
             $field->placeholder = 'In welchen Bereich fällt der Beitrag?';
             $field->choices = $choices;
         }
+
         return $form;
     }
 
