@@ -1,3 +1,13 @@
+body,.editor-styles-wrapper {
+    scroll-behavior: smooth;
+}
+.editor-styles-wrapper .edit-post-visual-editor__post-title-wrapper > h1{
+    font-size: 30px!important;
+}
+.wp-block .block-editor-rich-text__editable{
+    font-size: 16px;
+}
+
 .reli-inserter a {
     text-decoration: none;
     border: 1px solid dodgerblue;

@@ -57,6 +57,18 @@ RpiMaterialInputTemplate = {
         jQuery('.editor-post-save-draft').show();
     },
 
+    checkContent: function (){
+        let done = wp.data.select('core/block-editor').getBlocks().filter((b)=>typeof b.attributes.is_valid == true).length;
+        let inProgress = wp.data.select('core/block-editor').getBlocks().filter((b)=>typeof b.contentBlocks != 'undefined').length;
+        return {
+            startet:inProgress,
+            finished: done,
+            length: done+inProgress
+        };
+
+
+
+    },
 
     checkMeta: function (){
         const $ = jQuery;
@@ -591,19 +603,20 @@ RpiMaterialInputTemplate = {
             }
         });
     },
-    onContentChange: function (e){
 
-    }
 
 
 }
 jQuery(document).ready(($)=>{
 
     RpiWorkflow.addWorkflowStep(
+        ''
+    );
+
+    RpiWorkflow.addWorkflowStep(
         'writecontenet',
         [
-            ()=>!wp.data.select('core/block-editor').hasSelectedBlock(),
-            ()=>wp.data.select('core/editor').getEditedPostContent().length == wp.data.select('core/editor').getCurrentPostAttribute('content').length,
+            ()=>RpiMaterialInputTemplate.checkContent().length == 0,
             ()=>RpiWorkflow.counter>1
         ],
         function (wfs){
@@ -614,13 +627,12 @@ jQuery(document).ready(($)=>{
                 h:100,
                 button: 'Ok, verstanden'
             });
-            console.log($dialog)
-            if(!wfs.finished )
-                setTimeout(()=>{ if(!$dialog.is_open()) wfs.started = false},20000 );
+            $dialog.btn.click(()=> wfs.confirm());
+
         },
         [
-            ()=>wp.data.select('core/block-editor').hasSelectedBlock(),
-            ()=>wp.data.select('core/editor').getEditedPostContent().length - wp.data.select('core/editor').getCurrentPostAttribute('content').length > 0
+            ()=>RpiWorkflow.counter>3,
+            ()=>RpiMaterialInputTemplate.checkContent().length  > 0
         ],
         function (wfs){
             //Startdialog
@@ -630,9 +642,37 @@ jQuery(document).ready(($)=>{
                 h:200,
                 button: 'War nicht schwer'
             });
-            $dialog.btn.click((e)=> wfs.finish());
+            $dialog.btn.click(()=> wfs.finish());
         },
     );
+
+    $(window).on('post_save',(e, post_status)=>{
+       RpiWorkflow.onSave(post_status);
+    });
+
+    //beim Aufrufen Beitragsbild oder Kurzbeschreibung wählen
+    setTimeout(()=>{
+        console.log('Beitragsbild oder Kurzbeschreibung wählen');
+        const imgs = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name=='core/post-featured-image');
+        if(imgs.length>0){
+            wp.data.dispatch('core/block-editor').selectBlock(imgs.shift().clientId);
+            if(jQuery('.wp-block-post-featured-image .block-editor-media-placeholder').length===0){
+                jQuery(window).trigger('featured-image-empty');
+                wp.data.dispatch('core/block-editor').selectNextBlock();
+                const id = '#block-'+wp.data.select('core/block-editor').getSelectedBlock().clientId;
+                $(id)[0].scrollIntoView({block: "end", behavior: "smooth"});
+
+            }
+        }else{
+            blocks = wp.data.select('core/block-editor').getBlocks();
+            if(blocks.length>0 && blocks[0].clientId){
+                wp.data.dispatch('core/block-editor').selectBlock(blocks[0].clientId);
+
+            }
+        }
+
+    },2000);
+
 
 });
 
@@ -678,7 +718,11 @@ RpiWorkflow ={
                 this.finished = true;
                 RpiWorkflow.setMeta(this)
             },
+            confirm: function (){
+                this.started = true;
+            },
 
+            type: 'interval',
             started:false,
             finished:false,
             poperties: properties,
@@ -697,11 +741,17 @@ RpiWorkflow ={
             this.is_running =true;
         }
     },
+    onSave:function() {
+        this.loop('onSaveButton')
+    },
+   run:function() {
+        this.loop('interval')
+    },
 
-    run: function(){
+    loop: function(type){
         RpiWorkflow.counter ++;
 
-        for(const wfs of this.workflow){
+        for(const wfs of this.workflow.filter((wfs)=>wfs.type==type)){
 
             if(RpiWorkflow.counter<1){
                 wfs.finished = RpiWorkflow.getMeta(wfs);
@@ -831,7 +881,6 @@ RpiWorkflow ={
 wp.hooks.addAction('lzb.components.PreviewServerCallback.onChange','templates', function (props) {
 
    jQuery(window).on('editorBlocksChanged',RpiMaterialInputTemplate.setTemplateAttributes);
-   jQuery(window).on('editorContentChanged',RpiMaterialInputTemplate.onContentChange);
 
 });
 
@@ -877,6 +926,14 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         $('.edit-post-header-toolbar > div:first-child').css({'opacity':1});
         $('.edit-post-header-toolbar > div.rpi-material-toolbar').css({'opacity':1});
 
+        //hide inserters
+        $('.editor-styles-wrapper.block-editor-writing-flow').click(()=>{
+            if(!wp.data.select('core/block-editor').getSelectedBlock()){
+                $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
+                $('.block-editor-inserter').css({'visibility': 'hidden'});
+            }
+        })
+
         //move kadence-toolbar autside
         $('.kadence-toolbar-design-library button').click(()=>{return false;});
         $('.kadence-toolbar-design-library').css({'position':'absolute','top':'-100px'});
@@ -885,19 +942,16 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         $('.interface-pinned-items button.is-pressed').click();
 
 
-        $('#postbox-container-2').on('click',(e)=>{
-            RpiMaterialInputTemplate.displayMetaProgress();
-        });
-        $('.edit-post-visual-editor__content-area').on('click',(e)=>{
-            RpiMaterialInputTemplate.displayWritingProgress();
+        //smooth scrooling
+        $(window).bind( 'hashchange', function(e) {
+            e.preventDefault();
+            const hash = location.hash.toString();
+            if($(hash).length>0){
+                $(hash)[0].scrollIntoView({behavior: "smooth"});
+            }
         });
 
-        $('.editor-styles-wrapper.block-editor-writing-flow').click(()=>{
-            if(!wp.data.select('core/block-editor').getSelectedBlock()){
-                $('.edit-post-header-toolbar__inserter-toggle').prop("disabled", true);
-                $('.block-editor-inserter').css({'visibility': 'hidden'});
-            }
-        })
+
 
         $('.block-editor-block-list__layout').on('click', function (e) {
 
@@ -918,18 +972,30 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
          */
         RpiMaterialInputTemplate.doWith_ACF_Fields($);
 
+        //progressbar Meta fields initialisieren
+        $('#postbox-container-2').on('click',(e)=>{
+            RpiMaterialInputTemplate.displayMetaProgress();
+        });
+        RpiMaterialInputTemplate.displayMetaProgress();
 
-        $(window).on('keyup',(e)=>{
+        //progressbar content generation initialisieren
+        $('.edit-post-visual-editor__content-area').on('click',(e)=>{
+            RpiMaterialInputTemplate.displayWritingProgress();
+        });
+        $('.edit-post-visual-editor__content-area').click();
 
-            var block =  wp.data.select('core/editor').getSelectedBlock();
+
+
+        //on content generation
+
+        //$(window).on('keyup',(e)=>{
+        $(window).on('typing',(e,block, main_block, target)=>{
+
             if(!block){
                 return;
             }
 
-            var parent_id = wp.data.select('core/block-editor').getBlockHierarchyRootClientId(block.clientId);
-            var main_block = wp.data.select('core/editor').getBlock(parent_id);
-
-            $(window).trigger('typing',[parent_id,main_block]);
+            var parent_id = main_block.clientId;
 
             /**
              * excerpt aus Block schreiben, wenn is_teaser == true
@@ -950,37 +1016,39 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                 var $el = jQuery('#block-'+ parent_id +' .lazyblock');
 
                 //innerhalb des editierbaren bereiches prüfen
-                if(typeof e.target.attributes.contenteditable.value != "undefined"){
+
+                if(jQuery(target).attr('contenteditable') && typeof target.attributes.contenteditable.value != "undefined"){
 
                     //temporäre Block Eigenschaft in der die Zeichenlängen aller innerBlocks gespeichert werden
                     if(!main_block.contentBlocks) {
                         main_block.contentBlocks = {};
                     }
-                    let text = e.target.innerHTML.replace(/(<[^>]*>)/ig,'');
+                    let text = target.innerHTML.replace(/(<[^>]*>)/ig,'');
                     main_block.contentBlocks[block.clientId]=text.length;
                 }
                 //Zeichenlängen aller innerBlocks summieren
                 //https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
-                var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
+                if(typeof  main_block.contentBlocks != 'undefined') {
+                    var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
 
-                //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
-                //gesetzten minimalen Zeichenlänge
-                var percent = len * 100 /main_block.attributes.minimum_characters;
-                if(percent>100) percent =100;
+                    //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
+                    //gesetzten minimalen Zeichenlänge
+                    var percent = len * 100 /main_block.attributes.minimum_characters;
+                    if(percent>100) percent =100;
 
-                //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
-                if(jQuery('#progress-'+ parent_id).length===0){
-                    jQuery('<div id="progress-'+ parent_id +'" class="block-progress"></div>')
-                        .insertBefore( $el );
-                }
-                jQuery('#progress-'+ parent_id).css({'border-bottom':'3px solid green','width':percent+'%'});
+                    //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
+                    if(jQuery('#progress-'+ parent_id).length===0){
+                        jQuery('<div id="progress-'+ parent_id +'" class="block-progress"></div>')
+                            .insertBefore( $el );
+                    }
+                    jQuery('#progress-'+ parent_id).css({'border-bottom':'3px solid green','width':percent+'%'});
 
-                //Wenn 100% Fortschritt erreicht sind:
-                if(percent == 100){
-                    $(window).trigger('write_progress',[$el[0],$(window).trigger('typing',[parent_id,main_block])]);
-                    $el.addClass('is_valid');
-                    wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id,{'is_valid':true});
-                    jQuery('#progress-'+ parent_id).remove();
+                    //Wenn 100% Fortschritt erreicht sind:
+                    if(percent == 100){
+                        $el.addClass('is_valid');
+                        wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id,{'is_valid':true});
+                        jQuery('#progress-'+ parent_id).remove();
+                    }
                 }
             }
 
@@ -1011,19 +1079,29 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
     /**
      * create Observer
-     * fire Events editorBlocksChanged and editorContentChanged
+     * fire Events editorBlocksChanged
      */
     let __editor_content_loaded = false
 
     wp.domReady(() => {
 
-        return;
-
         const editor = wp.data.select('core/block-editor');
         let blockList = editor.getClientIdsWithDescendants();
-        let blockcontent = wp.data.select('core/editor').getCurrentPostAttribute('content');
         let authorID =wp.data.select('core/editor').getCurrentPostAttribute('author');
+
         wp.data.subscribe(() => {
+            if(wp.data.select('core/editor').isSavingPost() &&! wp.data.select('core/editor').isAutosavingPost()){
+                jQuery(window).trigger('post_save',[wp.data.select('core/editor').getEditedPostAttribute('status')]);
+            }
+
+            if(wp.data.select('core/editor').isTyping()){
+                //console.log('user is typing...');
+                let currentBlock = editor.getSelectedBlock();
+                let targetBlock = editor.getBlock( editor.getBlockHierarchyRootClientId( currentBlock.clientId ) );
+
+                let target = document.getElementById('block-'+targetBlock.clientId);
+                jQuery(window).trigger('typing',[currentBlock,targetBlock,target]);
+            }
 
             //notwendig um wp authorID mit acf-field-user synchronisieren
             if(wp.data.select('core/editor').getPostEdits().author && wp.data.select('core/editor').getPostEdits().author != authorID){
@@ -1032,13 +1110,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             }
 
             if(editor.getSelectedBlock()!==null){
-                const currblock = editor.getBlock(
-                    editor.getBlockHierarchyRootClientId(editor.getSelectedBlockClientId())
-                );
-
-                const newHTML = wp.data.select('core/editor').getEditedPostContent();
-                const contentChanged = (newHTML != blockcontent);
-                blockcontent = newHTML;
 
                 const newBlockList = editor.getClientIdsWithDescendants();
                 const blockListChanged = newBlockList !== blockList;
@@ -1046,21 +1117,10 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
 
 
                 if (blockListChanged) {
-                    jQuery(window).trigger('editorBlocksChanged', [currblock, editor.getBlocks()]);
+                    jQuery(window).trigger('editorBlocksChanged');
                     RpiMaterialInputTemplate.displayWritingProgress();
                 }
-                if(contentChanged){
-                    console.log('contentChanged',currblock.clientId )
-                    //jQuery(window).trigger('editorContentChanged',[currblock, newHTML]);
-                }
 
-            }else{
-                if(editor.getBlocks().length > 0 && !__editor_content_loaded){
-                    console.log('__editor_content_loaded');
-                    __editor_content_loaded = true;
-                    RpiMaterialInputTemplate.denyInserts(jQuery);
-                    RpiMaterialInputTemplate.setPermissions();
-                }
             }
 
 

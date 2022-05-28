@@ -22,10 +22,14 @@ class RpiMaterialInputTemplate
         $this->deactivated_block_types = array();
         add_action('admin_menu', array('RpiMaterialDeactivatedBlocks', 'register_acf_fields'));
         add_action('admin_menu', array('RpiMaterialDeactivatedBlocks', 'register_template_settings_options_page'));
-        add_action('init', array($this, 'register_custom_post_type'));
+        add_action('init', array($this, 'register_custom_post_types'));
+        add_action('init', array($this, 'register_custom_user_field'));
+        //add_action('init', array($this, 'add_custom_capabilities'));
+	    add_filter('admin_init', array($this, 'add_custom_capabilities'));
+        add_action('init', array($this, 'add_custom_taxonomies'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
-        add_action('admin_head', array($this, 'supply_option_data_to_js'));
+        add_action('admin_head', array($this, 'supply_option_data_to_js'),20);
 
         add_action('admin_init', array($this, 'check_for_broken_blocks'));
         add_action('save_post', array($this, 'add_template_att_to_blocks'), 10, 3);
@@ -41,7 +45,7 @@ class RpiMaterialInputTemplate
         add_action('the_title', array($this, 'the_title'), 10, 2);
         add_filter('get_usernumposts', array($this, 'get_author_usernumposts'), 10, 4);
 
-        add_filter('admin_init', array($this, 'add_capabilities'), 10, 4);
+
         //ajax
         add_action('wp_ajax_getTemplate', array('RpiMaterialInputTemplate', 'getTemplate'));
         add_action('wp_ajax_getTemplates', array('RpiMaterialInputTemplate', 'getTemplates'));
@@ -61,10 +65,11 @@ class RpiMaterialInputTemplate
     }
 
 
-    public function register_custom_post_type()
+
+    public function register_custom_post_types()
     {
         /**
-         * Post Type: Material.
+         * Post Type: materialien.
          */
 
         $labels = [
@@ -121,6 +126,12 @@ class RpiMaterialInputTemplate
 
         register_post_type("materialien", $args);
 
+
+
+	    /********************************************************************************
+	     * Post Type: materialtyp_template
+	     */
+
         $labels = [
             "name" => __("Vorlagen Interview", "blocksy"),
             "singular_name" => __("Vorlage", "blocksy"),
@@ -156,80 +167,80 @@ class RpiMaterialInputTemplate
         register_post_type("materialtyp_template", $args);
 
 
-        /**
-         * assign taxonomies **********************************************************************************************
-         */
-
-
-        /**
-         * Taxonomy: Einrichtungen.
-         * slug: organisation
-         */
-
-        $labels = [
-            "name" => __("Einrichtungen", "blocksy"),
-            "singular_name" => __("Einrichtung", "blocksy"),
-        ];
-
-
-        $args = [
-            "label" => __("Einrichtungen", "blocksy"),
-            "labels" => $labels,
-            "public" => true,
-            "publicly_queryable" => true,
-            "hierarchical" => false,
-            "show_ui" => false,
-            "show_in_menu" => true,
-            "show_in_nav_menus" => true,
-            "query_var" => true,
-            "rewrite" => ['slug' => 'organisation', 'with_front' => true,],
-            "show_admin_column" => true,
-            "show_in_rest" => true,
-            "show_tagcloud" => false,
-            "rest_base" => "organisation",
-            "rest_controller_class" => "WP_REST_Terms_Controller",
-            "rest_namespace" => "wp/v2",
-            "show_in_quick_edit" => false,
-            "sort" => false,
-            "show_in_graphql" => false,
-            "meta_box_cb" => false,
-            "capabilities" => array(
-                'manage_terms' => 'manage_organisation',
-                'edit_terms' => 'edit_organisation',
-                'delete_terms' => 'delete_organisation',
-                'assign_terms' => 'assign_organisation'
-            ),
-        ];
-        register_taxonomy("organisation", ["materialien"], $args);
-
-
-
-
-	    register_meta('user', 'workflow_step', array(
-		    'single' => true,
-		    'type' => 'array',
-		    'show_in_rest' => array(
-			    'schema' => array(
-				    'type'  => 'array',
-				    'items' => array(
-					    'type' => 'object',
-					    'properties' => array(
-						    'post_id'=>['type'=>'number'],
-						    'step'=>['type'=>'string'],
-						    'finished'=>['type'=>'boolean'],
-					    ),
-					    'additionalProperties' => true
-				    ),
-			    )
-		    ),
-	    ));
-
-
-
-
     }
 
-    public function add_capabilities()
+	public function register_custom_user_field(){
+
+		register_meta('user', 'workflow_step', array(
+			'single' => true,
+			'type' => 'array',
+			'show_in_rest' => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type' => 'object',
+						'properties' => array(
+							'post_id'=>['type'=>'number'],
+							'step'=>['type'=>'string'],
+							'finished'=>['type'=>'boolean'],
+						),
+						'additionalProperties' => true
+					),
+				)
+			),
+		));
+
+	}
+
+	/**
+	 * assign taxonomies **********************************************************************************************
+	 */
+	public function add_custom_taxonomies(){
+
+
+		/**
+		 * Taxonomy: Einrichtungen.
+		 * slug: organisation
+		 */
+
+		$labels = [
+			"name" => __("Einrichtungen", "blocksy"),
+			"singular_name" => __("Einrichtung", "blocksy"),
+		];
+
+
+		$args = [
+			"label" => __("Einrichtungen", "blocksy"),
+			"labels" => $labels,
+			"public" => true,
+			"publicly_queryable" => true,
+			"hierarchical" => false,
+			"show_ui" => false,
+			"show_in_menu" => true,
+			"show_in_nav_menus" => true,
+			"query_var" => true,
+			"rewrite" => ['slug' => 'organisation', 'with_front' => true,],
+			"show_admin_column" => true,
+			"show_in_rest" => true,
+			"show_tagcloud" => false,
+			"rest_base" => "organisation",
+			"rest_controller_class" => "WP_REST_Terms_Controller",
+			"rest_namespace" => "wp/v2",
+			"show_in_quick_edit" => false,
+			"sort" => false,
+			"show_in_graphql" => false,
+			"meta_box_cb" => false,
+			"capabilities" => array(
+				'manage_terms' => 'manage_organisation',
+				'edit_terms' => 'edit_organisation',
+				'delete_terms' => 'delete_organisation',
+				'assign_terms' => 'assign_organisation'
+			),
+		];
+		register_taxonomy("organisation", ["materialien"], $args);
+	}
+
+    public function add_custom_capabilities()
     {
 
         $roles = ['administrator', 'editor'];
@@ -346,16 +357,16 @@ class RpiMaterialInputTemplate
         $post = get_post($entry['post_id']);
         if (is_a($post, 'WP_Post') && !empty($template_ids)) {
             $post->post_content = '<!-- wp:post-featured-image /-->' . "\n\n" .
-                '<!-- wp:lazyblock/reli-leitfragen-kurzbeschreibung {"is_teaser":true} /-->';
+                '<!-- wp:lazyblock/reli-leitfragen-kurzbeschreibung {"is_teaser":true, "lock":{"move":true, "remove":true} } /-->';
             foreach ($template_ids as $template_id) {
                 $template = get_post($template_id);
                 if (is_a($template, 'WP_Post')) {
                     $post->post_content .= $template->post_content;
                 }
             }
-            $post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang /-->';
             $post->post_content .= '<!-- wp:lazyblock/reli-quellennachweis /-->';
-            $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->' . "\n" . '<p class="hidden">/</p>' . "\n" . '<!-- /wp:paragraph -->';
+	        $post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang {"lock":{"move":true, "remove":true}} /-->';
+	        $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->' . "\n" . '<p class="hidden">/</p>' . "\n" . '<!-- /wp:paragraph -->';
             wp_update_post($post);
         }
 
@@ -411,10 +422,22 @@ class RpiMaterialInputTemplate
         if (get_post_type(get_the_ID()) != get_field('template_post_type', 'option')) {
             return;
         }
+	    if(isset(get_option('theme_mods_blocksy')['narrowContainerWidth'])){
+            $narrowContainerWidth = get_option('theme_mods_blocksy')['narrowContainerWidth'];
+		    //set content width in editor <=>
+		    echo "<script>
+                jQuery(document).ready(($)=>{
+                    setTimeout(()=>$('.editor-styles-wrapper').css({'max-width':'{$narrowContainerWidth}px'},1)); //,'transform': 'scale(1.1)','margin':'9em auto'
+                });
+             </script>";
+        }
 
-        //blaue inserter Linie zwischen den Block verbergen, weil verwirrend
-        echo
-        '<style>
+
+
+	    //blaue inserter Linie zwischen den Block verbergen, weil verwirrend
+	    echo '<style>
+            /* Main column width */
+                       
             .block-editor-block-list__insertion-point-popover.is-without-arrow .is-with-inserter
             { 
                 opacity: 0;
