@@ -57,16 +57,23 @@ RpiMaterialInputTemplate = {
         jQuery('.editor-post-save-draft').show();
     },
 
+    isSetFeaturedImage:function (){
+        //detect wether is set featured Image
+        if(jQuery('.wp-block-post-featured-image .block-editor-media-placeholder').length===0){
+            $('.wp-block-post-featured-image').addClass('is_valid');
+            return true;
+        }
+        return false;
+    },
+
     checkContent: function (){
-        let done = wp.data.select('core/block-editor').getBlocks().filter((b)=>typeof b.attributes.is_valid == true).length;
-        let inProgress = wp.data.select('core/block-editor').getBlocks().filter((b)=>typeof b.contentBlocks != 'undefined').length;
+        let total = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.minimum_characters>0).length;
+        let done = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.is_valid == true).length;
         return {
-            startet:inProgress,
-            finished: done,
-            length: done+inProgress
+            todo: total-done,
+            total: total,
+            length: done
         };
-
-
 
     },
 
@@ -99,16 +106,21 @@ RpiMaterialInputTemplate = {
             }
 
         })
+
         return {percent: filled.length * 100 / total.length};
     },
     displayWritingProgress: function (){
-        let total = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.minimum_characters>0);
-        let ok = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.is_valid);
-        let percent = ok.length * 100 /total.length;
-        console.log(percent,ok,total);
+        let total = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.minimum_characters>0).length;
+        let ok = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.attributes.is_valid === true).length;
+        let percent = ok * 100 /total;
+        //console.log(percent,ok,total);
 
         jQuery('#rpi-material-status-progress').css({'width': percent+'%', 'max.width':'100%'});
         jQuery('#rpi-material-status-progress').attr('title', percent+ '% begonnener Schreibprozess');
+
+
+
+
         return {percent:percent};
     },
     displayMetaProgress: function (){
@@ -117,6 +129,24 @@ RpiMaterialInputTemplate = {
         jQuery('#rpi-material-meta-progress').attr('title', progress.percent+ '% Metaangaben');
         return progress;
     },
+
+    writeExcerpt: function (block){
+        /**
+         * excerpt aus Block schreiben, wenn is_teaser == true
+         */
+        //const blocks = wp.data.select('core/block-editor').getBlocks().filter((block)=>block.attributes.is_teaser);
+        //if(blocks.length>0)
+        //{
+            //const parent_id = blocks[0].clientId;
+            const parent_id = block.clientId;
+            var text = jQuery('#block-'+ parent_id +' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi,'');
+            var post_id = wp.data.select('core/editor').getCurrentPost().id;
+            wp.data.dispatch('core/editor').editPost({'id':post_id,'excerpt':text });
+
+        //}
+
+    },
+
     stepsComplete: function (){
 
         wp.data.dispatch('core/editor').editPost({status: 'publish'});
@@ -146,13 +176,7 @@ RpiMaterialInputTemplate = {
 
 
     },
-    modal_extend_template: function (html){
 
-        RpiMaterialInputTemplate.dialog(html+'<div id="template-reflexion-box"></div>', 'Vorlage anpassen');
-        RpiMaterialInputTemplate.getTemplates('reflexion');
-
-
-    },
     modal_checklist: function (html){
         RpiMaterialInputTemplate.dialog(html,'Kriterienliste für den Prüfbericht',500,400);
 
@@ -331,6 +355,7 @@ RpiMaterialInputTemplate = {
                 //     },1000);
                 //}
                 RpiMaterialInputTemplate.displayWritingProgress();
+
             }
 
         );
@@ -604,17 +629,126 @@ RpiMaterialInputTemplate = {
         });
     },
 
-
-
 }
 jQuery(document).ready(($)=>{
 
     RpiWorkflow.addWorkflowStep(
-        ''
+        'featuredImage',
+        'onSaveButton',
+        [
+            ()=>false === RpiMaterialInputTemplate.isSetFeaturedImage(),
+            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent > 50,
+        ],
+        function (wfs){
+            //Startdialog
+            $dialog = RpiWorkflow.dialog({
+                content:'Jeder Beitrag braucht ein Beitragsbild, das bei der Auflistung gesuchter ' +
+                    'Materialien dein Material auf den ersten Blick erkennbar macht. Klicke ' +
+                    'dazu auf den obersten Block \"Beitragsbild\" und lade ein geeignetes Bild ' +
+                    'hoch oder noch einfacher: ziehe ein Bild aus einem Datei Ordner auf den Block."',
+                w:300,
+                h:200,
+                button: 'Ok, ich probiere es'
+            });
+            $dialog.btn.click(()=> wfs.confirm());
+
+        },
+        [
+            ()=>true === RpiMaterialInputTemplate.isSetFeaturedImage(),
+        ]
+
     );
 
     RpiWorkflow.addWorkflowStep(
-        'writecontenet',
+        'metafields',
+        'onSaveButton',
+        [
+            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent > 80,
+        ],
+        function (wfs){
+
+            html= '<p><strong>Wie lässt sich dein Material am besten zuordnen?</strong></p>';
+            html += '<p>Unter der Inhaltseingabe findest du ein anhängendes Fomular mit mehreren Reitern (Urherberschaft, Formal, Inhalt).</p>';
+            html += '<p>Wenn du dort die passenden Kategorien auswählst oder ergänzt, wird dein Material besser gefunden.</p>';
+            //Startdialog
+            $dialog = RpiWorkflow.dialog({
+                content: html,
+                w:300,
+                h:200,
+                button: 'Ok, mach ich!'
+            });
+            $dialog.btn.click(()=> {wfs.confirm();location.hash = 'postbox-container-2';});
+
+        },
+        [
+            ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>30,
+        ]
+
+    );
+
+    RpiWorkflow.addWorkflowStep(
+        'reflexion',
+        'onSaveButton',
+        [
+            ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>40,
+            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent>100,
+
+        ],
+        function (wfs){
+
+            let content = '<p>Durch Klick auf "Vorlage anpassen", kannst du dein Material erweitern. ' +
+                'Leitfragen helfen dir beim Ausfüllen.</p>'+
+                '<div id="template-reflexion-box"></div>';
+
+            $dialog = RpiWorkflow.dialog({
+                content: content,
+                w:400,
+                h:300,
+                button: 'Schließen'
+            });
+            $dialog.btn.click(()=> {wfs.finished()});
+            RpiMaterialInputTemplate.getTemplates('reflexion');
+
+        }
+
+    );
+
+
+    RpiWorkflow.addWorkflowStep(
+        'kriterien',
+        'onSaveButton',
+        [
+            ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>30,
+        ],
+        function (wfs){
+
+            $dialog = RpiWorkflow.dialog({
+                content: '<p>Du scheinst weitestgehend fertig zu sein. Du kannst dieses Fenster schließen,' +
+                    ' wenn du noch weiter arbeiten möchtest. Die Redaktion wird deine Inhalte anhand folgender ' +
+                    'Kriterien prüfen.</p><ol id="modal_kriterien-liste"></ol>',
+                w:400,
+                h:300,
+                button: 'Schließen'
+            });
+
+            $=jQuery;
+            $.get(
+                ajaxurl, {
+                    'action': 'getCriteria',
+                },
+                function (response) {
+                    $('#modal_kriterien-liste').append(response);
+                }
+            );
+            $dialog.btn.click(()=> {wfs.confirm()});
+
+        }
+
+    );
+
+    RpiWorkflow.addWorkflowStep(
+        'writeContent',
+        'interval',
         [
             ()=>RpiMaterialInputTemplate.checkContent().length == 0,
             ()=>RpiWorkflow.counter>1
@@ -631,23 +765,15 @@ jQuery(document).ready(($)=>{
 
         },
         [
-            ()=>RpiWorkflow.counter>3,
             ()=>RpiMaterialInputTemplate.checkContent().length  > 0
         ],
         function (wfs){
-            //Startdialog
-            $dialog =  RpiWorkflow.dialog({
-                content:'Super, Su hast selbst herausgefunden, wo man Inhalte eingibt! Du kannst übrigens auch Bilder und einbinden, indem du sie auf die Eingabeaufforderung ziehst',
-                w:300,
-                h:200,
-                button: 'War nicht schwer'
-            });
-            $dialog.btn.click(()=> wfs.finish());
+            wfs.finish();
         },
     );
 
     $(window).on('post_save',(e, post_status)=>{
-       RpiWorkflow.onSave(post_status);
+        RpiWorkflow.onSave(post_status);
     });
 
     //beim Aufrufen Beitragsbild oder Kurzbeschreibung wählen
@@ -656,8 +782,7 @@ jQuery(document).ready(($)=>{
         const imgs = wp.data.select('core/block-editor').getBlocks().filter((b)=>b.name=='core/post-featured-image');
         if(imgs.length>0){
             wp.data.dispatch('core/block-editor').selectBlock(imgs.shift().clientId);
-            if(jQuery('.wp-block-post-featured-image .block-editor-media-placeholder').length===0){
-                jQuery(window).trigger('featured-image-empty');
+            if(RpiMaterialInputTemplate.isSetFeaturedImage()){
                 wp.data.dispatch('core/block-editor').selectNextBlock();
                 const id = '#block-'+wp.data.select('core/block-editor').getSelectedBlock().clientId;
                 $(id)[0].scrollIntoView({block: "end", behavior: "smooth"});
@@ -686,9 +811,11 @@ RpiWorkflow ={
      * @param startfn function  e.g. (step)=>{ RpiWorkflow.dialog('jetzt geht es los'); step.percent=1; }
      * @param endconditions     array of functions that return bool e.g: [(step)=>step.percent > 99]
      * @param endfn function    e.g. (step)=>RpiWorkflow.dialog('Du hast es geschafft')
+     * @param type              string wether checked in interval loop or when clicked on SaveButton. Allowed: 'interval','onSaveButton'
      * @param properties        array of properties  eg ['percent']
      */
     addWorkflowStep: function (slug='',
+                               type = 'interval',
                                startconditions=[()=>true],
                                startfn = (wfs)=>{ wfs.started =true },
                                endconditions=[()=>false],
@@ -722,7 +849,7 @@ RpiWorkflow ={
                 this.started = true;
             },
 
-            type: 'interval',
+            type: type,
             started:false,
             finished:false,
             poperties: properties,
@@ -736,7 +863,7 @@ RpiWorkflow ={
     init: function (){
         if(!this.is_running){
             window.__RpiWorkflow = setInterval(()=>{
-                this.run();
+                this.loop('interval');
             },5000);
             this.is_running =true;
         }
@@ -744,12 +871,10 @@ RpiWorkflow ={
     onSave:function() {
         this.loop('onSaveButton')
     },
-   run:function() {
-        this.loop('interval')
-    },
 
     loop: function(type){
         RpiWorkflow.counter ++;
+        console.log(this.workflow.filter((wfs)=>wfs.type==type));
 
         for(const wfs of this.workflow.filter((wfs)=>wfs.type==type)){
 
@@ -981,39 +1106,33 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         //progressbar content generation initialisieren
         $('.edit-post-visual-editor__content-area').on('click',(e)=>{
             RpiMaterialInputTemplate.displayWritingProgress();
+            RpiMaterialInputTemplate.isSetFeaturedImage();
+            RpiMaterialInputTemplate.checkMeta();
         });
-        $('.edit-post-visual-editor__content-area').click();
+        setTimeout(()=>$('.edit-post-visual-editor__content-area').click(),2200);
+
 
 
 
         //on content generation
 
-        //$(window).on('keyup',(e)=>{
         $(window).on('typing',(e,block, main_block, target)=>{
 
             if(!block){
                 return;
             }
-
             var parent_id = main_block.clientId;
 
-            /**
-             * excerpt aus Block schreiben, wenn is_teaser == true
-             */
+            //$el = zugehöriger html block als jQuery Element
+            var $el = jQuery('#block-'+ parent_id +' .lazyblock');
 
-            if(main_block.attributes.is_teaser){
-                var text = jQuery('#block-'+ parent_id +' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi,'');
-                var post_id = wp.data.select('core/editor').getCurrentPost().id;
-                wp.data.dispatch('core/editor').editPost({'id':post_id,'excerpt':text });
-            }
 
             /**
              * Blockeingabe überprüfen und Fortschritt im übergeordneten Lazyblock anzeigen
              */
+
             if(main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters >0){
 
-                //$el = zugehöriger html block als jQuery Element
-                var $el = jQuery('#block-'+ parent_id +' .lazyblock');
 
                 //innerhalb des editierbaren bereiches prüfen
 
@@ -1025,16 +1144,24 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                     }
                     let text = target.innerHTML.replace(/(<[^>]*>)/ig,'');
                     main_block.contentBlocks[block.clientId]=text.length;
+                    console.log('target',target, main_block.contentBlocks);
+
+
                 }
                 //Zeichenlängen aller innerBlocks summieren
                 //https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
+
                 if(typeof  main_block.contentBlocks != 'undefined') {
+
+                    console.log('main_block.contentBlocks',main_block.contentBlocks);
+
                     var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
 
                     //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
                     //gesetzten minimalen Zeichenlänge
                     var percent = len * 100 /main_block.attributes.minimum_characters;
                     if(percent>100) percent =100;
+
 
                     //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
                     if(jQuery('#progress-'+ parent_id).length===0){
@@ -1050,6 +1177,11 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                         jQuery('#progress-'+ parent_id).remove();
                     }
                 }
+            }else if(main_block.attributes.is_valid ){
+                $el.addClass('is_valid');
+            }
+            if(main_block.attributes.is_teaser){
+                RpiMaterialInputTemplate.writeExcerpt(main_block);
             }
 
         });
@@ -1088,6 +1220,8 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
         const editor = wp.data.select('core/block-editor');
         let blockList = editor.getClientIdsWithDescendants();
         let authorID =wp.data.select('core/editor').getCurrentPostAttribute('author');
+        let time = ()=>Math.floor(Date.now()/1000);
+        var timer=0;
 
         wp.data.subscribe(() => {
             if(wp.data.select('core/editor').isSavingPost() &&! wp.data.select('core/editor').isAutosavingPost()){
@@ -1095,12 +1229,22 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
             }
 
             if(wp.data.select('core/editor').isTyping()){
-                //console.log('user is typing...');
-                let currentBlock = editor.getSelectedBlock();
-                let targetBlock = editor.getBlock( editor.getBlockHierarchyRootClientId( currentBlock.clientId ) );
+                if(timer < time()){
 
-                let target = document.getElementById('block-'+targetBlock.clientId);
-                jQuery(window).trigger('typing',[currentBlock,targetBlock,target]);
+                    let currentBlock = editor.getSelectedBlock();
+                    if(currentBlock){
+                        let targetBlock = editor.getBlock( editor.getBlockHierarchyRootClientId( currentBlock.clientId ) );
+                        let target = document.getElementById('block-'+currentBlock.clientId);
+                        if(target && targetBlock)
+                            console.log('trigger typing');
+                            jQuery(window).trigger('typing',[currentBlock,targetBlock,target]);
+                    }
+
+                    timer = time();
+                }
+
+
+
             }
 
             //notwendig um wp authorID mit acf-field-user synchronisieren
@@ -1122,7 +1266,6 @@ wp.hooks.addFilter('editor.BlockEdit', 'namespace', function (fn) {
                 }
 
             }
-
 
 
 

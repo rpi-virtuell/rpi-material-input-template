@@ -7,6 +7,14 @@ body,.editor-styles-wrapper {
 .wp-block .block-editor-rich-text__editable{
     font-size: 16px;
 }
+.editor-styles-wrapper.block-editor-writing-flow{
+    margin-left: auto;
+    margin-right: auto;
+    background-color: white;
+    padding: 0 30px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
 
 .reli-inserter a {
     text-decoration: none;
@@ -70,6 +78,16 @@ body,.editor-styles-wrapper {
     width: 100%;
 }
 
+.wp-block-post-featured-image.is_valid::before {
+    content:"✔️";
+    position: absolute;
+    top: -3px;
+    right: 1px;
+    text-align: right;
+}
+.wp-block-post-featured-image::after {
+
+}
 .wp-block-post-featured-image img {
     max-width: 100%;
     height: auto;

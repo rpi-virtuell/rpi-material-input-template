@@ -49,6 +49,7 @@ class RpiMaterialInputTemplate
         //ajax
         add_action('wp_ajax_getTemplate', array('RpiMaterialInputTemplate', 'getTemplate'));
         add_action('wp_ajax_getTemplates', array('RpiMaterialInputTemplate', 'getTemplates'));
+        add_action('wp_ajax_getTemplates', array('RpiMaterialInputTemplate', 'getCriteria'));
 
 
         //hide taxonomy Metaboxes in Block-Editor
@@ -495,6 +496,46 @@ class RpiMaterialInputTemplate
 
     }
 
+    static function getCriteria(){
+	    $version = isset($_GET['version']) ? $_GET['version'] : 'v1';
+
+	    $posts = get_posts([
+		    'post_type' => 'material_criteria',
+		    'numberposts' => -1,
+		    'tax_query' => array(
+			    array(
+				    'taxonomy' => 'version',
+				    'field' => 'slug',
+				    'terms' => $version,
+				    'include_children' => true,
+				    'operator' => 'IN'
+			    )
+		    )
+	    ]);
+	    if ($posts && count($posts) === 0) {
+		    echo '<li>noch keine Prüfkriterien vorhanden';
+		    die();
+	    }
+	    ?>
+        <div class="controll-panel">
+            <div class="criteria-list">
+                <ol>
+                <?php
+                    $i = 0;
+                    foreach ($posts as $post) {
+                        echo '<li class="reli-criterium" data="' . $post->post_name . '">
+                                    <input id="crit-'.$post->ID.'" type="checkbox" name="criteria" value="'.$post->ID.'">
+                                    <label for="crit-'.$post->ID.'">' . $post->post_title . '</label>
+                              </li>';
+                    }
+                    ?>
+                </ol>
+
+        </div>
+	    <?php
+	    die();
+
+    }
     static function getTemplates()
     {
 
