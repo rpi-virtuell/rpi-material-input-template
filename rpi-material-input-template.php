@@ -49,7 +49,7 @@ class RpiMaterialInputTemplate
         //ajax
         add_action('wp_ajax_getTemplate', array('RpiMaterialInputTemplate', 'getTemplate'));
         add_action('wp_ajax_getTemplates', array('RpiMaterialInputTemplate', 'getTemplates'));
-        add_action('wp_ajax_getTemplates', array('RpiMaterialInputTemplate', 'getCriteria'));
+        add_action('wp_ajax_getCriteria', array('RpiMaterialInputTemplate', 'getCriteria'));
 
 
         //hide taxonomy Metaboxes in Block-Editor
@@ -366,7 +366,7 @@ class RpiMaterialInputTemplate
                 }
             }
             $post->post_content .= '<!-- wp:lazyblock/reli-quellennachweis /-->';
-	        $post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang {"lock":{"move":true, "remove":true}} /-->';
+	        //$post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang /-->';
 	        $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->' . "\n" . '<p class="hidden">/</p>' . "\n" . '<!-- /wp:paragraph -->';
             wp_update_post($post);
         }
@@ -382,6 +382,13 @@ class RpiMaterialInputTemplate
         wp_enqueue_script(
             'template_handling',
             plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js',
+            array(),
+            '1.0',
+            true
+        );
+        wp_enqueue_script(
+            'workflow_handling',
+            plugin_dir_url(__FILE__) . '/assets/js/rpi-workflow.js',
             array(),
             '1.0',
             true
