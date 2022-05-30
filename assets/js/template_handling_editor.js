@@ -136,74 +136,7 @@
 
             $(window).on('typing', (e, block, main_block, target) => {
 
-                if (!block) {
-                    return;
-                }
-                var parent_id = main_block.clientId;
 
-                //$el = zugehöriger html block als jQuery Element
-                var $el = jQuery('#block-' + parent_id + ' .lazyblock');
-
-
-                /**
-                 * Blockeingabe überprüfen und Fortschritt im übergeordneten Lazyblock anzeigen
-                 */
-
-                if (main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters > 0) {
-
-
-                    //innerhalb des editierbaren bereiches prüfen
-
-                    if (jQuery(target).attr('contenteditable') && typeof target.attributes.contenteditable.value != "undefined") {
-
-                        //temporäre Block Eigenschaft in der die Zeichenlängen aller innerBlocks gespeichert werden
-                        if (!main_block.contentBlocks) {
-                            main_block.contentBlocks = {};
-                        }
-                        let text = target.innerHTML.replace(/(<[^>]*>)/ig, '');
-                        main_block.contentBlocks[block.clientId] = text.length;
-                        console.log('target', target, main_block.contentBlocks);
-
-
-                    }
-                    //Zeichenlängen aller innerBlocks summieren
-                    //https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
-
-                    if (typeof main_block.contentBlocks != 'undefined') {
-
-                        console.log('main_block.contentBlocks', main_block.contentBlocks);
-
-                        var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
-
-                        //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
-                        //gesetzten minimalen Zeichenlänge
-                        var percent = len * 100 / main_block.attributes.minimum_characters;
-                        if (percent > 100) percent = 100;
-
-
-                        //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
-                        if (jQuery('#progress-' + parent_id).length === 0) {
-                            jQuery('<div id="progress-' + parent_id + '" class="block-progress"></div>')
-                                .insertBefore($el);
-                        }
-                        jQuery('#progress-' + parent_id).css({
-                            'border-bottom': '3px solid green',
-                            'width': percent + '%'
-                        });
-
-                        //Wenn 100% Fortschritt erreicht sind:
-                        if (percent == 100) {
-                            $el.addClass('is_valid');
-                            wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id, {'is_valid': true});
-                            jQuery('#progress-' + parent_id).remove();
-                        }
-                    }
-                } else if (main_block.attributes.is_valid) {
-                    $el.addClass('is_valid');
-                }
-                if (main_block.attributes.is_teaser) {
-                    RpiMaterialInputTemplate.writeExcerpt(main_block);
-                }
 
             });
 
@@ -236,24 +169,30 @@
         let blockList = editor.getClientIdsWithDescendants();
         let authorID = wp.data.select('core/editor').getCurrentPostAttribute('author');
         let time = () => Math.floor(Date.now() / 1000);
-        var timer = 0;
+        var timer = 0,newTime;
 
         wp.data.subscribe(() => {
+            newTime = time();
 
             if (wp.data.select('core/editor').isSavingPost() && !wp.data.select('core/editor').isAutosavingPost()) {
                 jQuery(window).trigger('post_save', [wp.data.select('core/editor').getEditedPostAttribute('status')]);
             }
 
             if (wp.data.select('core/editor').isTyping()) {
-                if (timer < time()) {
+                if (newTime > timer +3) {
 
                     let currentBlock = editor.getSelectedBlock();
                     if (currentBlock) {
                         let targetBlock = editor.getBlock(editor.getBlockHierarchyRootClientId(currentBlock.clientId));
                         let target = document.getElementById('block-' + currentBlock.clientId);
-                        if (target && targetBlock)
+                        if (target && targetBlock){
                             console.log('trigger typing');
-                        jQuery(window).trigger('typing', [currentBlock, targetBlock, target]);
+                            RpiMaterialInputTemplate.watchTyping(currentBlock, targetBlock, target);
+                            //jQuery(window).trigger('typing', [currentBlock, targetBlock, target]);
+                        }
+
+
+
                     }
 
                     timer = time();
@@ -399,6 +338,80 @@ RpiMaterialInputTemplate = {
         return false;
     },
 
+    watchTyping: function(block, main_block, target){
+
+        if (!block) {
+            return;
+        }
+        var parent_id = main_block.clientId;
+
+        //$el = zugehöriger html block als jQuery Element
+        var $el = jQuery('#block-' + parent_id + ' .lazyblock');
+
+
+        /**
+         * Blockeingabe überprüfen und Fortschritt im übergeordneten Lazyblock anzeigen
+         */
+
+        if (main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters > 0) {
+
+
+            //innerhalb des editierbaren bereiches prüfen
+
+            if (jQuery(target).attr('contenteditable') && typeof target.attributes.contenteditable.value != "undefined") {
+
+                //temporäre Block Eigenschaft in der die Zeichenlängen aller innerBlocks gespeichert werden
+                if (!main_block.contentBlocks) {
+                    main_block.contentBlocks = {};
+                }
+                let text = target.innerHTML.replace(/(<[^>]*>)/ig, '');
+                main_block.contentBlocks[block.clientId] = text.length;
+                //console.log('target', target, main_block.contentBlocks);
+
+
+            }
+
+
+            if (typeof main_block.contentBlocks != 'undefined') {
+
+                //console.log('main_block.contentBlocks', main_block.contentBlocks);
+
+                var len = Object.values(main_block.contentBlocks).reduce((pre, curr) => pre + curr);
+
+                //Berechnung des Fortschritts anhand der aktuellen Zeichenlänge und der in der Leitfrage
+                //gesetzten minimalen Zeichenlänge
+                var percent = len * 100 / main_block.attributes.minimum_characters;
+                if (percent > 100) percent = 100;
+
+
+                //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
+                if (jQuery('#progress-' + parent_id).length === 0) {
+                    jQuery('<div id="progress-' + parent_id + '" class="block-progress"></div>')
+                        .insertBefore($el);
+                }
+                jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});
+                jQuery('#progress-' + parent_id).css({'border-bottom': '3px solid green'});
+                jQuery('#progress-' + parent_id).animate({'width':+percent+'%'},{'duration':2000});
+
+                //Wenn 100% Fortschritt erreicht sind:
+                if (percent === 100) {
+                    $el.addClass('is_valid');
+                    if (!main_block.attributes.is_valid){
+                        wp.data.dispatch('core/block-editor').updateBlockAttributes(parent_id, {'is_valid': true});
+                    }
+                    jQuery('#progress-' + parent_id).remove();
+                }
+                return;
+            }
+        } else if (main_block.attributes.is_valid) {
+            $el.addClass('is_valid');
+
+        }
+        if (main_block.attributes.is_teaser) {
+            RpiMaterialInputTemplate.writeExcerpt(main_block);
+        }
+    },
+
     checkContent: function () {
         let total = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.minimum_characters > 0).length;
         let done = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.is_valid == true).length;
@@ -442,6 +455,7 @@ RpiMaterialInputTemplate = {
 
         return {percent: filled.length * 100 / total.length};
     },
+
     displayWritingProgress: function () {
         let total = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.minimum_characters > 0).length;
         let ok = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.is_valid === true).length;
