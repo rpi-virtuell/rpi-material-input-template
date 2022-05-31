@@ -6,14 +6,17 @@
     wp.domReady(() => {
 
         $(document).ready(function () {
+
+            //location back verhindern
+            location.hash = 'gettemplates';
+            location.hash = '';
+
             const post = wp.data.select('core/editor').getCurrentPost();
-            console.log(post.type, rpi_material_input_template.options.post_type);
+            //console.log(post.type, rpi_material_input_template.options.post_type);
             if (post.type != rpi_material_input_template.options.post_type) {
                 return;
             }
 
-            location.hash = 'gettemplates';
-            location.hash = '';
 
             if (post.status == 'draft') {
                 //verhindern, dass  user wieder in das formular zurück switchen
@@ -24,7 +27,6 @@
                 });
             }
             //blockeditor ui aufräumen nicht core Zeugs ausblenden;
-            console.log('blockeditor ui aufräumen');
 
             //move kadence-toolbar autside
             $('.kadence-toolbar-design-library button').click(() => {
@@ -143,7 +145,7 @@
 
             wp.data.select("core/editor").getBlocks().forEach((b) => {
                 if (b.attributes.is_valid) {
-                    console.log('first fetch', b.attributes);
+                    //console.log('first fetch', b.attributes);
                     $('#block-' + b.clientId + ' .lazyblock').addClass('is_valid');
                 }
             });
@@ -403,9 +405,6 @@ RpiMaterialInputTemplate = {
                 }
                 return;
             }
-        } else if (main_block.attributes.is_valid) {
-            $el.addClass('is_valid');
-
         }
         if (main_block.attributes.is_teaser) {
             RpiMaterialInputTemplate.writeExcerpt(main_block);

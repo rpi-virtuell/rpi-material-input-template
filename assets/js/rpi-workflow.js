@@ -189,6 +189,9 @@ jQuery(document).ready(($)=>{
         (wfs)=>wfs.finish()
     )
 
+    RpiWorkflow.init();
+
+
 });
 RpiWorkflow ={
 
@@ -253,9 +256,10 @@ RpiWorkflow ={
         if(!this.is_running){
             window.__RpiWorkflow = setInterval(()=>{
                 this.loop('interval');
-            },3000);
+            },2000);
             this.is_running =true;
         }
+        setTimeout(()=>RpiWorkflow.getWorkflow(),2200);
     },
     onSave:function() {
         this.loop('onSaveButton')
@@ -409,7 +413,16 @@ RpiWorkflow ={
     getWorkflow: function (){
         this.loop('interval');
         this.loop('onSaveButton');
-        return this.workflow;
+
+        let completed = [];
+        for(step of this.workflow){
+            if(step.finished){
+                completed.push(step.step);
+            }
+        }
+        return 'completed: ' + completed.join(', ');
     }
+
+
 
 }
