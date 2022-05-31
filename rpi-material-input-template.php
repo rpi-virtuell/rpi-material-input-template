@@ -357,7 +357,8 @@ class RpiMaterialInputTemplate
 
         $post = get_post($entry['post_id']);
         if (is_a($post, 'WP_Post') && !empty($template_ids)) {
-            $post->post_content = '<!-- wp:post-featured-image /-->' . "\n\n" .
+            $post->post_content =
+                '<!-- wp:post-featured-image {"height":"350px","scale":"contain","lock":{"insert":true,"move":true,"remove":true}} /-->' . "\n\n" .
                 '<!-- wp:lazyblock/reli-leitfragen-kurzbeschreibung {"is_teaser":true, "lock":{"move":true, "remove":true} } /-->';
             foreach ($template_ids as $template_id) {
                 $template = get_post($template_id);

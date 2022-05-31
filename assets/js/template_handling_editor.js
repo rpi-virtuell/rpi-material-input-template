@@ -334,7 +334,7 @@ RpiMaterialInputTemplate = {
     isSetFeaturedImage: function () {
         //detect wether is set featured Image
         if (jQuery('.wp-block-post-featured-image .block-editor-media-placeholder').length === 0) {
-            $('.wp-block-post-featured-image').addClass('is_valid');
+            jQuery('.wp-block-post-featured-image').addClass('is_valid');
             return true;
         }
         return false;
@@ -461,9 +461,19 @@ RpiMaterialInputTemplate = {
         let percent = ok * 100 / total;
         //console.log(percent,ok,total);
 
-        jQuery('#rpi-material-status-progress').css({'width': percent + '%', 'max.width': '100%'});
-        jQuery('#rpi-material-status-progress').attr('title', percent + '% begonnener Schreibprozess');
 
+        if(percent>0){
+            jQuery('#rpi-material-status-progress').html('');
+            jQuery('#rpi-material-status-progress').css({'width': percent + '%', 'max.width': '100%'});
+            jQuery('#rpi-material-status-progress').attr('title', percent + '% begonnener Schreibprozess');
+            jQuery('#rpi-material-status-progress-text').remove();
+        }else{
+            if(jQuery('#rpi-material-status-progress-text').length === 0){
+                jQuery('#rpi-material-status-progress')
+                    .after(jQuery('<div id ="rpi-material-status-progress-text" style="position: absolute; top:8px;margin-left:15px;font-size:xx-small;">Texteingabe fehlt</div>'));
+            }
+
+        }
 
         return {percent: percent};
     },

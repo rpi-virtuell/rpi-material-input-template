@@ -16,14 +16,15 @@ jQuery(document).ready(($)=>{
         'interval',
         [
             ()=>RpiMaterialInputTemplate.checkContent().length == 0,
-            ()=>RpiWorkflow.counter>1
+            ()=>RpiWorkflow.counter>4
         ],
         function (wfs){
             //Startdialog
             $dialog = RpiWorkflow.dialog({
-                content:'Klicke auf einen der Inhaltsblöcke und beginne mit deiner Eingabe, Du kannst übrigens auch Bilder und einbinden, indem du sie auf die Eingabeaufforderung ziehst',
-                w:200,
-                h:100,
+                content:'Klicke auf einen der Inhaltsblöcke und beginne mit deiner Eingabe, Du kannst übrigens auch Bilder einbinden, indem du sie aus einem Ordner auf die Eingabeaufforderung ziehst',
+                w:300,
+                h:200,
+                title: 'Hinweis',
                 button: 'Ok, verstanden'
             });
             $dialog.btn.click(()=> wfs.confirm());
@@ -46,8 +47,7 @@ jQuery(document).ready(($)=>{
         'featuredImage',
         'onSaveButton',
         [
-            ()=>false === RpiMaterialInputTemplate.isSetFeaturedImage(),
-            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent > 50,
+            ()=>RpiWorkflow.find('writeContent').finished === true,
         ],
         function (wfs){
             //Startdialog
@@ -60,7 +60,12 @@ jQuery(document).ready(($)=>{
                 h:200,
                 button: 'Ok, ich probiere es'
             });
-            $dialog.btn.click(()=> wfs.confirm());
+            $dialog.btn.click(wfs.confirm);
+            var cancel = ()=>{
+                wfs.finish();
+                tb_remove();
+            }
+            wfs.addButton($dialog.btn, 'cancel', 'Habe kein Bild', cancel );
 
         },
         [
@@ -73,7 +78,7 @@ jQuery(document).ready(($)=>{
         'metafields',
         'onSaveButton',
         [
-            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent > 80,
+            ()=>RpiWorkflow.find('featuredImage').finished === true,
         ],
         function (wfs){
 
@@ -87,7 +92,13 @@ jQuery(document).ready(($)=>{
                 h:200,
                 button: 'Ok, mach ich!'
             });
-            $dialog.btn.click(()=> {wfs.confirm();location.hash = 'postbox-container-2';});
+            $dialog.btn.click(()=> {
+                if(jQuery('.acf-postbox.closed').length > 0){
+                    jQuery('#postbox-container-2 button.handlediv').click();
+                }
+                location.hash = 'postbox-container-2'
+                , wfs.confirm();
+            });
 
         },
         [
@@ -153,12 +164,9 @@ jQuery(document).ready(($)=>{
             );
             $dialog.btn.click(()=> {
                 wfs.finish();
+
             });
-            if($('#criteria-cancel').length===0){
-                var cancel = $('<button id="criteria-cancel">Abbrechen</button>');
-                cancel.click(()=>tb_remove());
-                cancel.insertAfter($dialog.btn);
-            }
+            wfs.addButton($dialog.btn, 'cancel', 'Weiter arbeiten', tb_remove );
         },
         [
             ()=>false
@@ -189,7 +197,17 @@ jQuery(document).ready(($)=>{
         (wfs)=>wfs.finish()
     )
 
-    RpiWorkflow.init();
+    wp.domReady(e=>{
+        setTimeout(e=>{
+            if(wp.data.select('core/editor').getCurrentPostAttribute('status')=='draft'){
+
+                RpiWorkflow.init();
+            }
+        },1000)
+
+
+    });
+
 
 
 });
@@ -235,7 +253,8 @@ RpiWorkflow ={
             },
             finish: function (){
                 this.finished = true;
-                RpiWorkflow.setMeta(this)
+                RpiWorkflow.setMeta(this);
+                RpiWorkflow.getWorkflow();
             },
             confirm: function (){
                 this.started = true;
@@ -245,6 +264,23 @@ RpiWorkflow ={
             started:false,
             finished:false,
             poperties: properties,
+            /**
+             *
+             * @param dialogBtn
+             * @param id
+             * @param label
+             * @param fn
+             *
+             * example: wfs.addButton($dialog.btn, 'cancel', 'Weiter arbeiten', tb_remove );
+             */
+            addButton: function (dialogBtn,id, label, fn){
+                id = this.step +'-' + id;
+                if(jQuery('#'+id).length===0){
+                    var btn = jQuery('<button class="button is_secondary" id="'+id+'">'+label+'</button>');
+                    btn.click(fn);
+                    btn.insertAfter($dialog.btn);
+                }
+            }
         };
         this.workflow.push(wfs);
     },
@@ -256,10 +292,12 @@ RpiWorkflow ={
         if(!this.is_running){
             window.__RpiWorkflow = setInterval(()=>{
                 this.loop('interval');
+
             },2000);
+            setTimeout(e=>RpiWorkflow.getWorkflow(),2200);
             this.is_running =true;
         }
-        setTimeout(()=>RpiWorkflow.getWorkflow(),2200);
+
     },
     onSave:function() {
         this.loop('onSaveButton')
@@ -346,7 +384,6 @@ RpiWorkflow ={
         if (typeof wfs === 'string' || wfs instanceof String){
             //console.log(wfs, this.workflow);
             wfs = this.find(wfs);
-            //console.log(wfs);
         }
         wfs.do_end(wfs);
     },
@@ -411,6 +448,7 @@ RpiWorkflow ={
         wp.data.dispatch("core").saveUser(user);
     },
     getWorkflow: function (){
+
         this.loop('interval');
         this.loop('onSaveButton');
 
