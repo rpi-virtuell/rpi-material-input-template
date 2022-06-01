@@ -125,7 +125,7 @@ jQuery(document).ready(($)=>{
 
             $dialog = RpiWorkflow.dialog({
                 content: content,
-                w:600,
+                w:800,
                 h:400,
                 button: 'Schließen'
             });
@@ -149,13 +149,15 @@ jQuery(document).ready(($)=>{
                 content: '<p>Du scheinst weitestgehend fertig zu sein. Du kannst dieses Fenster schließen,' +
                     ' wenn du noch weiter arbeiten möchtest. Die Redaktion wird deine Inhalte anhand folgender ' +
                     'Kriterien prüfen.</p><ol id="modal_kriterien-liste"></ol>',
-                w:400,
-                h:300,
+                w:1000,
+                h:630,
                 title: 'Inhalte nochmal prüfen',
                 button: 'Bereit zum Veröffentlichen'
             });
 
             $=jQuery;
+            $('#TB_ajaxContent').css({'background-position':'center 80%'});
+            $('#TB_ajaxContent .dialog-content').css({'margin-top':'2%'});
             $.get(
                 ajaxurl, {
                     'action': 'getCriteria',

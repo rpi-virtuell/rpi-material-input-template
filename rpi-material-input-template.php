@@ -509,9 +509,11 @@ class RpiMaterialInputTemplate
     static function getCriteria(){
 	    $version = isset($_GET['version']) ? $_GET['version'] : 'v1';
 
-	    $posts = get_posts([
+	    $query = new WP_Query([
 		    'post_type' => 'material_criteria',
 		    'numberposts' => -1,
+            'orderby'=>'menu_order',
+            'order'=>'ASC',
 		    'tax_query' => array(
 			    array(
 				    'taxonomy' => 'version',
@@ -522,8 +524,9 @@ class RpiMaterialInputTemplate
 			    )
 		    )
 	    ]);
-	    if ($posts && count($posts) === 0) {
+	    if ($query->post_count === 0) {
 		    echo '<li>noch keine Prüfkriterien vorhanden';
+            wp_reset_postdata();
 		    die();
 	    }
 	    ?>
@@ -532,10 +535,12 @@ class RpiMaterialInputTemplate
                 <ol>
                 <?php
                     $i = 0;
-                    foreach ($posts as $post) {
-                        echo '<li class="reli-criterium" data="' . $post->post_name . '">
-                                    <input id="crit-'.$post->ID.'" type="checkbox" name="criteria" value="'.$post->ID.'">
-                                    <label for="crit-'.$post->ID.'">' . $post->post_title . '</label>
+                    while ($query->have_posts()) {
+                        $crit = $query->the_post();
+
+                        echo '<li class="reli-criterium" data="' . $crit->post_name . '">
+                                    <input id="crit-'.get_the_ID().'" type="checkbox" name="criteria" value="'.get_the_ID().'">
+                                    <label for="crit-'.get_the_ID().'"><strong>' . get_the_title() . '</strong><dl>' . get_the_content() . '</dl></label>
                               </li>';
                     }
                     ?>
@@ -543,6 +548,7 @@ class RpiMaterialInputTemplate
 
         </div>
 	    <?php
+	    wp_reset_postdata();
 	    die();
 
     }

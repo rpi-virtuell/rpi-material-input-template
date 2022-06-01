@@ -133,6 +133,10 @@
                 }, 2000);
             }
 
+            $('.edit-post-header-toolbar__inserter-toggle').ready(() => {
+                console.log('edit-post-header-toolbar__inserter-toggle ready');
+                RpiMaterialInputTemplate.addToolbar($);
+            });
 
             //on content generation
 
@@ -158,10 +162,7 @@
         );
 
 
-        $('.edit-post-header-toolbar__inserter-toggle').ready(() => {
-            console.log('edit-post-header-toolbar__inserter-toggle ready');
-            RpiMaterialInputTemplate.addToolbar($);
-        });
+
 
 
         /**
@@ -270,34 +271,50 @@ RpiMaterialInputTemplate = {
             return;
         }
         let status = wp.data.select('core/editor').getEditedPostAttribute('status');
-        if (status != 'draft') {
-            return;
-        }
 
 
         if ($('.rpi-material-toolbar').length === 0) {
-            // prepare our custom link's html.
-            var template_box_html = '' +
-                '<div class="rpi-material-toolbar">' +
-                '<button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button>' +
-                '<button id="display-post-btn" class="components-button is-tertiary">Beitrag ansehen</button>' +
-                '</div>' +
-                '<div id="template-config-box"></div>';
 
+            if (status == 'draft') {
+                // prepare our custom link's html.
+                var template_box_html = '' +
+                    '<div class="rpi-material-toolbar">' +
+                    '<button id="template-config-toggle" class="components-button is-tertiary">Vorlage anpassen</button>' +
+                    '<button id="display-post-btn" class="components-button is-tertiary">Beitrag ansehen</button>' +
+                    '</div>' +
+                    '<div id="template-config-box"></div>';
 
-            var toolbalEl = editorEl.querySelector('.edit-post-header__toolbar');
-            if (toolbalEl instanceof HTMLElement) {
-                toolbalEl.insertAdjacentHTML('beforeend', template_box_html);
-                var left = jQuery('#template-config-toggle').offset().left;
-                $('#template-config-box').offset({left: left});
+                var toolbalEl = editorEl.querySelector('.edit-post-header__toolbar');
+                if (toolbalEl instanceof HTMLElement) {
+                    toolbalEl.insertAdjacentHTML('beforeend', template_box_html);
+                    var left = jQuery('#template-config-toggle').offset().left;
+                    $('#template-config-box').offset({left: left});
+                }
+
+                $('#template-config-toggle').click((e) => {
+                    jQuery('#template-config-box').slideToggle();
+                });
+                $('.interface-interface-skeleton__body').click((e) => {
+                    $('#template-config-box').slideUp();
+                });
+            }else{
+                // prepare our custom link's html.
+                var template_box_html = '' +
+                    '<div class="rpi-material-toolbar">' +
+                    '<button id="display-post-btn" class="components-button is-tertiary">Beitrag ansehen</button>' +
+                    '</div>';
+
+                var toolbalEl = editorEl.querySelector('.edit-post-header__toolbar');
+                if (toolbalEl instanceof HTMLElement) {
+                    toolbalEl.insertAdjacentHTML('beforeend', template_box_html);
+                    var left = jQuery('#template-config-toggle').offset().left;
+                    $('#template-config-box').offset({left: left});
+                }
+
             }
 
-            $('#template-config-toggle').click((e) => {
-                jQuery('#template-config-box').slideToggle();
-            });
-            $('.interface-interface-skeleton__body').click((e) => {
-                $('#template-config-box').slideUp();
-            });
+
+
             $('#display-post-btn').click((e) => {
                 location.href = wp.data.select('core/editor').getCurrentPost().link;
             });
@@ -388,7 +405,7 @@ RpiMaterialInputTemplate = {
 
                 //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
                 if (jQuery('#progress-' + parent_id).length === 0) {
-                    jQuery('<div id="progress-' + parent_id + '" class="block-progress" style="width: 0;"></div>')
+                    jQuery('<div id="progress-' + parent_id + '" class="block-progress" style=""></div>')
                         .insertBefore($el);
                 }
                 jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});
