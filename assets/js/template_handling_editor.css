@@ -125,10 +125,6 @@ body,.editor-styles-wrapper {
     transition: opacity 0.3s;
 }
 
-.tooltip-box > * {
-    text-align: center;
-}
-
 .tooltip-box a {
     color: white;
 }
