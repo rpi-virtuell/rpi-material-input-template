@@ -388,7 +388,7 @@ RpiMaterialInputTemplate = {
 
                 //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
                 if (jQuery('#progress-' + parent_id).length === 0) {
-                    jQuery('<div id="progress-' + parent_id + '" class="block-progress"></div>')
+                    jQuery('<div id="progress-' + parent_id + '" class="block-progress" style="width: 0;"></div>')
                         .insertBefore($el);
                 }
                 jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});

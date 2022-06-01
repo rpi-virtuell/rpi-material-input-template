@@ -411,11 +411,13 @@ class RpiMaterialInputTemplate
         } else {
             $is_editor = 'false';
         }
+        $path = plugin_dir_url(__FILE__);
         //globale javascript variable "rpi_material_input_template" befüllen
         echo
         "<script>
                 const rpi_material_input_template = 
                 {
+                    url: '$path',
                     options:
                     {
                         deactivated_blocks: JSON.parse('$this->deactivated_block_types'),
@@ -424,7 +426,7 @@ class RpiMaterialInputTemplate
                     },
                     user:{
                         is_editor: $is_editor
-                    }
+                    },
                 }
         </script>";
 

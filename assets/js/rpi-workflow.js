@@ -22,10 +22,11 @@ jQuery(document).ready(($)=>{
             //Startdialog
             $dialog = RpiWorkflow.dialog({
                 content:'Klicke auf einen der Inhaltsblöcke und beginne mit deiner Eingabe, Du kannst übrigens auch Bilder einbinden, indem du sie aus einem Ordner auf die Eingabeaufforderung ziehst',
-                w:300,
-                h:200,
                 title: 'Hinweis',
-                button: 'Ok, verstanden'
+                button: 'Ok, verstanden',
+                w:400,
+                h:300,
+
             });
             $dialog.btn.click(()=> wfs.confirm());
 
@@ -56,8 +57,8 @@ jQuery(document).ready(($)=>{
                     'Materialien dein Material auf den ersten Blick erkennbar macht. Klicke ' +
                     'dazu auf den obersten Block \"Beitragsbild\" und lade ein geeignetes Bild ' +
                     'hoch oder noch einfacher: ziehe ein Bild aus einem Datei Ordner auf den Block."',
-                w:300,
-                h:200,
+                w:400,
+                h:300,
                 button: 'Ok, ich probiere es'
             });
             $dialog.btn.click(wfs.confirm);
@@ -79,6 +80,7 @@ jQuery(document).ready(($)=>{
         'onSaveButton',
         [
             ()=>RpiWorkflow.find('featuredImage').finished === true,
+            ()=>RpiWorkflow.find('writeContent').finished === true,
         ],
         function (wfs){
 
@@ -88,8 +90,8 @@ jQuery(document).ready(($)=>{
             //Startdialog
             $dialog = RpiWorkflow.dialog({
                 content: html,
-                w:300,
-                h:200,
+                w:400,
+                h:300,
                 button: 'Ok, mach ich!'
             });
             $dialog.btn.click(()=> {
@@ -112,7 +114,7 @@ jQuery(document).ready(($)=>{
         'onSaveButton',
         [
             ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>40,
-            ()=>RpiMaterialInputTemplate.displayWritingProgress().percent>80,
+            ()=>RpiWorkflow.find('writeContent').finished === true,
 
         ],
         function (wfs){
@@ -123,8 +125,8 @@ jQuery(document).ready(($)=>{
 
             $dialog = RpiWorkflow.dialog({
                 content: content,
-                w:400,
-                h:300,
+                w:600,
+                h:400,
                 button: 'Schließen'
             });
             $dialog.btn.click(()=> {wfs.finish()});
@@ -147,8 +149,8 @@ jQuery(document).ready(($)=>{
                 content: '<p>Du scheinst weitestgehend fertig zu sein. Du kannst dieses Fenster schließen,' +
                     ' wenn du noch weiter arbeiten möchtest. Die Redaktion wird deine Inhalte anhand folgender ' +
                     'Kriterien prüfen.</p><ol id="modal_kriterien-liste"></ol>',
-                w:800,
-                h:600,
+                w:400,
+                h:300,
                 title: 'Inhalte nochmal prüfen',
                 button: 'Bereit zum Veröffentlichen'
             });
@@ -392,30 +394,43 @@ RpiWorkflow ={
         args = {
             title:args.title    ||'Hilfe' ,
             content:args.content||'',
-            w:args.w            ||400,
-            h:args.h            ||300,
+            w:args.w            ||800,
+            h:args.h            ||600,
             button:args.button  ||'OK',
             step:args.step      ||null
         };
 
 
-        tb_show(args.title, '#TB_inline?width='+args.w+'&height='+args.h);
-        jQuery(document).find('#TB_window').width(TB_WIDTH).height(TB_HEIGHT).css('margin-left', - TB_WIDTH / 2);
-        jQuery('#TB_ajaxContent').html(args.content);
+        args.content = '<div id="dialog-'+args.step+'" class="dialog-content" style="margin: 19% 27% 0 24%;">'+args.content+'</div>';
 
-        if(jQuery('#tb_bottom_bar_btn').length === 0){
 
-            jQuery('<div class="tb_bottom_bar"><button id="tb_bottom_bar_btn" class="button is_primary">'+args.button+'</button></div>').insertAfter(jQuery('#TB_ajaxContent'));
+        if(jQuery('#dialog-'+args.step).length===0){
+            tb_show(args.title, '#TB_inline?width='+args.w+'&height='+args.h);
+            jQuery(document).find('#TB_window').width(TB_WIDTH).height(TB_HEIGHT).css('margin-left', - TB_WIDTH / 2);
+            jQuery('#TB_ajaxContent').html(args.content);
 
-            jQuery('#tb_bottom_bar_btn').click((e)=>{
-
-                if(args.step !== null){
-                    RpiWorkflow.finish(args.step);
-                }
-                tb_remove();
+            jQuery('#TB_ajaxContent').css({
+                'background-image':'url(https://test.rpi-virtuell.de/wp-content/plugins/rpi-material-input-template-main/assets/background.png)',
+                'background-size': '100%',
+                'background-repeat': 'no-repeat',
+                'background-position': 'center'
             });
 
+            if(jQuery('#tb_bottom_bar_btn').length === 0){
+
+                jQuery('<div class="tb_bottom_bar"><button id="tb_bottom_bar_btn" class="button is_primary">'+args.button+'</button></div>').insertAfter(jQuery('#TB_ajaxContent'));
+
+                jQuery('#tb_bottom_bar_btn').click((e)=>{
+
+                    if(args.step !== null){
+                        RpiWorkflow.finish(args.step);
+                    }
+                    tb_remove();
+                });
+
+            }
         }
+
         return {btn:jQuery('#tb_bottom_bar_btn'),content:jQuery('#TB_ajaxContent'), is_open:()=>jQuery('#TB_window').css('visibility')=='visible'};
 
     },
