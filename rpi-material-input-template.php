@@ -319,9 +319,15 @@ class RpiMaterialInputTemplate
             }
 
             $term = $field->type == 'radio' ? 'radio' : 'checkbox';
+
+            if($term == 'checkbox'){
+                $term = $field->adminLabel;
+            }
             $args = array(
                 'post_type' => 'materialtyp_template',
                 'numberposts' => -1,
+                'orderby'=>'menu_order',
+                'order'=>'ASC',
                 'tax_query' => array(
                     array(
                         'taxonomy' => 'template_type',
@@ -350,7 +356,7 @@ class RpiMaterialInputTemplate
         $template_ids = array();
 
         foreach ($_POST as $input_key => $input_value) {
-            if (str_starts_with($input_key, 'input_9_') or $input_key == 'input_14') {
+            if (str_starts_with($input_key, 'input_9_') or $input_key == 'input_14' or $input_key == 'input_25') {
                 $template_ids[] = $input_value;
             }
         }
@@ -556,6 +562,12 @@ class RpiMaterialInputTemplate
     {
 
         $term = isset($_GET['term']) ? $_GET['term'] : 'checkbox';
+
+
+        if($term=='checkbox'){
+            //alle Materialerweiterungen
+            $term = array($term, 'relpaed');
+        }
 
         $posts = get_posts([
             'post_type' => 'materialtyp_template',
