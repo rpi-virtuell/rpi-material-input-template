@@ -30,9 +30,12 @@ class RpiMaterialInputTemplate
         add_action('init', array($this, 'add_custom_taxonomies'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
-        add_action('admin_head', array($this, 'supply_option_data_to_js'),20);
 
-        add_action('admin_init', array($this, 'check_for_broken_blocks'));
+        add_action('admin_head', array($this, 'supply_option_data_to_js'),20);
+	    add_action('save_post', array($this, 'theWorkflow'),10,3);
+
+
+	    add_action('admin_init', array($this, 'check_for_broken_blocks'));
         add_action('save_post', array($this, 'add_template_att_to_blocks'), 10, 3);
 
         add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
@@ -413,6 +416,13 @@ class RpiMaterialInputTemplate
             '1.0',
             true
         );
+	    wp_enqueue_script(
+		    'workflow_steps',
+		    plugin_dir_url(__FILE__) . '/assets/js/workflow_steps.js',
+		    array(),
+		    '1.0',
+		    true
+	    );
         wp_enqueue_style(
             'template_handling_style',
             plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.css'
@@ -692,6 +702,149 @@ class RpiMaterialInputTemplate
         }
 
         return $response;
+    }
+
+
+	/**
+     * save_post action
+     *
+	 * Schreibt /assets/js/workflow_steps.js mit den in  im post_type workflow hinterlegten Eingabehilfen
+	 */
+    function theWorkflow(int $post_ID, WP_Post $post, bool $update){
+
+        if('workflow' !== $post->post_type){
+            return;
+        }
+
+        ob_start();
+
+        $laststep = false;
+
+        $workflow = get_posts(array(
+		    'post_type'=>'workflow',
+		    'numberposts' => -1,
+		    'orderby'=>'menu_order',
+		    'order'=>'ASC',
+	    ));
+
+
+
+
+        //echo "<script>";
+	    //start--jQuery(document).ready------------------------------->
+        echo "jQuery(document).ready(function($){ ";
+
+
+	    foreach ($workflow as  $wfs){   //------------- start foreach----------->
+		    $step = (object) get_fields($wfs->ID, true);
+
+            //validate startcondition
+		    if(!$step->start_after_custom_code || empty($step->startcondition) ){
+                if($laststep){
+	                $step->startcondition = "[()=>RpiWorkflow.find('".$laststep."').finished === true]" ;
+                }else{
+	                $step->startcondition = "[()=>true]" ;
+                }
+            }
+
+		    $laststep = $wfs->post_name;
+
+		    //validate endcondition
+		    if(empty($step->endcondition) ){
+			    $step->endcondition = "[()=>false]" ;
+		    }
+
+
+            /**
+             * generiert folgenden Javascript Befehl -> siehe rpi-worklfow js -> RpiWorkflow.addWorkflowStep()
+             *
+             * addWorkflowStep(
+             *   slug='',
+             *   type = 'interval',
+             *   startconditions=[()=>true],
+             *   startfn = (wfs)=>{ wfs.started =true },
+             *   endconditions=[()=>false]
+             *   endfn = (wfs)=>{wfs.finish()}
+             * )
+             */
+
+		    //---------------------------addWorkflowStep-->
+		    ?>
+            RpiWorkflow.addWorkflowStep(
+                '<?php echo $wfs->post_name;?>',
+                '<?php echo $step->type;?>',
+                <?php echo $step->startcondition;?>,
+                <?php
+
+
+                echo "  (wfs)=>{"; //startfn ----------------------------------------------------------------- >
+                if($step->has_start_dialog){
+                    ?>dialog = RpiWorkflow.dialog({
+                        content: <?php echo json_encode($step->startdialog['content']) ;?>,
+                        title: <?php echo json_encode($step->startdialog['title']) ;?>,
+                        button: <?php echo json_encode($step->startdialog['button']) ;?>,
+                        w:<?php echo $step->startdialog['width'] ;?>,
+                        h:<?php echo $step->startdialog['height'] ;?>
+                    });
+                    <?php
+                    switch($step->startdialog['ok_btn_select']){
+                        case 'confirm':
+                            echo "      dialog.btn.click(()=>{console.log(wfs);wfs.confirm();});";
+                            break;
+                        case 'finish':
+                            echo "      dialog.btn.click(()=>wfs.finish());";
+                            break;
+                        case 'code':
+                            echo "      dialog.btn.click(()=>{".$step->startdialog['ok_btn_onclick']."});";
+                            break;
+                    }
+                }
+		        echo $step->startfn;
+                echo "},\n"; //-- startfn <-----------------------------------------------------------------
+
+
+
+                echo $step->endcondition.",\n";
+
+
+
+                echo "(wfs)=>{"; //endfn ----------------------------------------------------------------- >
+
+                if($step->has_end_dialog){
+                    ?>dialog = RpiWorkflow.dialog({
+                        content: <?php echo json_encode($step->enddialog['content']) ;?>,
+                        title: <?php echo json_encode($step->enddialog['title']) ;?>,
+                        button: <?php echo json_encode($step->enddialog['button']) ;?>,
+                        w:<?php echo $step->enddialog['width'] ;?>,
+                        h:<?php echo $step->enddialog['height'] ;?>
+                    });
+                    <?php
+                    switch($step->enddialog['ok_btn_select']){
+                        case 'finish':
+                            echo "      dialog.btn.click(()=>wfs.finish());";
+                            break;
+                        case 'code':
+                            echo "      dialog.btn.click(()=>{".$step->enddialog['ok_btn_onclick']."});";
+                            break;
+                    }
+
+                }
+		        echo $step->endfn;
+
+                echo "}"; //-- endfn <----------------------------------------------------------------- /
+
+
+
+		    echo ");\n";  //<---------------------------addWorkflowStep--
+
+
+	    }   //<------------- end foreach-----------
+
+	    echo "});"; //end--jQuery(document).ready------------------------------->
+
+        $script = ob_get_clean();
+        file_put_contents(__DIR__.'/assets/js/workflow_steps.js',$script);
+
     }
 
 }
