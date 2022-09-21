@@ -66,16 +66,20 @@ body,.editor-styles-wrapper {
     color: var(--headings-color);
 }
 
-.wp-block-post-featured-image::before {
-    content: 'Beitragsbild';
+/*.wp-block-post-featured-image::before*/
+
+.wp-block-post-featured-image.wp-block-post-featured-image .components-placeholder::before {
+    content: 'Beitragsbild: Ziehe deine Bilddatei auf diesen Block';
     position: absolute;
     z-index: 10;
     background: #fff;
-    opacity: 0.5;
+    opacity: 0.7;
     padding: 0 10px;
     text-align: center;
-    display: block;
-    width: 100%;
+    /*display: block;*/
+    /*width: 100%;*/
+    color: orangered;
+    font-size: 13px;
 }
 
 .wp-block-post-featured-image.is_valid::before {

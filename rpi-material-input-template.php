@@ -26,12 +26,14 @@ class RpiMaterialInputTemplate
         add_action('init', array($this, 'register_custom_user_field'));
         //add_action('init', array($this, 'add_custom_capabilities'));
 	    add_filter('admin_init', array($this, 'add_custom_capabilities'));
+        add_action('init', array($this, 'force_create_material_with_form'));
         add_action('init', array($this, 'add_custom_taxonomies'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
+
         add_action('admin_head', array($this, 'supply_option_data_to_js'),20);
 
-        add_action('admin_init', array($this, 'check_for_broken_blocks'));
+	    add_action('admin_init', array($this, 'check_for_broken_blocks'));
         add_action('save_post', array($this, 'add_template_att_to_blocks'), 10, 3);
 
         add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
@@ -295,6 +297,16 @@ class RpiMaterialInputTemplate
 
     }
 
+    /**
+	 * Stellt sicher, das ein Material nur über das formular erstellt werden kann
+     * /post-new.php?post_type=materialien -> /eingabeformular
+	 */
+    public function force_create_material_with_form(){
+	    if(strpos($_SERVER['SCRIPT_NAME'],'post-new.php')>0 && $_GET['post_type']===get_field('template_post_type', 'option')){
+		    wp_redirect(home_url().'/neues-material-eingeben');
+	    }
+    }
+
     public function register_gravity_form()
     {
 //             TODO:: DEBUG resource to create importable file for Gravity Forms
@@ -319,9 +331,15 @@ class RpiMaterialInputTemplate
             }
 
             $term = $field->type == 'radio' ? 'radio' : 'checkbox';
+
+            if($term == 'checkbox'){
+                $term = $field->adminLabel;
+            }
             $args = array(
                 'post_type' => 'materialtyp_template',
                 'numberposts' => -1,
+                'orderby'=>'menu_order',
+                'order'=>'ASC',
                 'tax_query' => array(
                     array(
                         'taxonomy' => 'template_type',
@@ -350,12 +368,14 @@ class RpiMaterialInputTemplate
         $template_ids = array();
 
         foreach ($_POST as $input_key => $input_value) {
-            if (str_starts_with($input_key, 'input_9_') or $input_key == 'input_14') {
+            if (str_starts_with($input_key, 'input_9_') or $input_key == 'input_14' or str_starts_with($input_key, 'input_25_')){
                 $template_ids[] = $input_value;
             }
         }
 
+
         $post = get_post($entry['post_id']);
+
         if (is_a($post, 'WP_Post') && !empty($template_ids)) {
             $post->post_content =
                 '<!-- wp:post-featured-image {"height":"350px","scale":"contain","lock":{"insert":true,"move":true,"remove":true}} /-->' . "\n\n" .
@@ -383,13 +403,6 @@ class RpiMaterialInputTemplate
         wp_enqueue_script(
             'template_handling',
             plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js',
-            array(),
-            '1.0',
-            true
-        );
-        wp_enqueue_script(
-            'workflow_handling',
-            plugin_dir_url(__FILE__) . '/assets/js/rpi-workflow.js',
             array(),
             '1.0',
             true
@@ -557,6 +570,12 @@ class RpiMaterialInputTemplate
 
         $term = isset($_GET['term']) ? $_GET['term'] : 'checkbox';
 
+
+        if($term=='checkbox'){
+            //alle Materialerweiterungen
+            $term = array($term, 'relpaed');
+        }
+
         $posts = get_posts([
             'post_type' => 'materialtyp_template',
             'numberposts' => -1,
@@ -669,6 +688,11 @@ class RpiMaterialInputTemplate
         return $response;
     }
 
+
+
+
 }
 
 new RpiMaterialInputTemplate();
+
+include_once ("class-rpi-workflow.php");

@@ -7,201 +7,18 @@
  */
 
 /**
- * füge einzelene Workflowsteps zum Workflow hinzu
+ * Workflowsteps initialisieren
  */
 jQuery(document).ready(($)=>{
 
-    RpiWorkflow.addWorkflowStep(
-        'writeContent',
-        'interval',
-        [
-            ()=>RpiMaterialInputTemplate.checkContent().length == 0,
-            ()=>RpiWorkflow.counter>4
-        ],
-        function (wfs){
-            //Startdialog
-            $dialog = RpiWorkflow.dialog({
-                content:'Klicke auf einen der Inhaltsblöcke und beginne mit deiner Eingabe, Du kannst übrigens auch Bilder einbinden, indem du sie aus einem Ordner auf die Eingabeaufforderung ziehst',
-                title: 'Hinweis',
-                button: 'Ok, verstanden',
-                w:400,
-                h:300,
-
-            });
-            $dialog.btn.click(()=> wfs.confirm());
-
-        },
-        [
-            ()=>RpiMaterialInputTemplate.checkContent().length  > 0
-        ],
-        function (wfs){
-            wfs.finish();
-        },
-    );
 
     $(window).on('post_save',(e, post_status)=>{
         RpiWorkflow.onSave(post_status);
     });
 
-
-    RpiWorkflow.addWorkflowStep(
-        'featuredImage',
-        'onSaveButton',
-        [
-            ()=>RpiWorkflow.find('writeContent').finished === true,
-        ],
-        function (wfs){
-            //Startdialog
-            $dialog = RpiWorkflow.dialog({
-                content:'Jeder Beitrag braucht ein Beitragsbild, das bei der Auflistung gesuchter ' +
-                    'Materialien dein Material auf den ersten Blick erkennbar macht. Klicke ' +
-                    'dazu auf den obersten Block \"Beitragsbild\" und lade ein geeignetes Bild ' +
-                    'hoch oder noch einfacher: ziehe ein Bild aus einem Datei Ordner auf den Block."',
-                w:400,
-                h:300,
-                button: 'Ok, ich probiere es'
-            });
-            $dialog.btn.click(wfs.confirm);
-            var cancel = ()=>{
-                wfs.finish();
-                tb_remove();
-            }
-            wfs.addButton($dialog.btn, 'cancel', 'Habe kein Bild', cancel );
-
-        },
-        [
-            ()=>true === RpiMaterialInputTemplate.isSetFeaturedImage(),
-        ]
-
-    );
-
-    RpiWorkflow.addWorkflowStep(
-        'metafields',
-        'onSaveButton',
-        [
-            ()=>RpiWorkflow.find('featuredImage').finished === true,
-            ()=>RpiWorkflow.find('writeContent').finished === true,
-        ],
-        function (wfs){
-
-            html= '<p><strong>Wie lässt sich dein Material am besten zuordnen?</strong></p>';
-            html += '<p>Unter der Inhaltseingabe findest du ein anhängendes Fomular mit mehreren Reitern (Urherberschaft, Formal, Inhalt).</p>';
-            html += '<p>Wenn du dort die passenden Kategorien auswählst oder ergänzt, wird dein Material besser gefunden.</p>';
-            //Startdialog
-            $dialog = RpiWorkflow.dialog({
-                content: html,
-                w:400,
-                h:300,
-                button: 'Ok, mach ich!'
-            });
-            $dialog.btn.click(()=> {
-                if(jQuery('.acf-postbox.closed').length > 0){
-                    jQuery('#postbox-container-2 button.handlediv').click();
-                }
-                location.hash = 'postbox-container-2'
-                , wfs.confirm();
-            });
-
-        },
-        [
-            ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>30,
-        ]
-
-    );
-
-    RpiWorkflow.addWorkflowStep(
-        'reflexion',
-        'onSaveButton',
-        [
-            ()=>RpiMaterialInputTemplate.displayMetaProgress().percent>40,
-            ()=>RpiWorkflow.find('writeContent').finished === true,
-
-        ],
-        function (wfs){
-
-            let content = '<p>Durch Klick auf "Vorlage anpassen", kannst du dein Material erweitern. ' +
-                'Leitfragen helfen dir beim Ausfüllen.</p>'+
-                '<div id="template-reflexion-box"></div>';
-
-            $dialog = RpiWorkflow.dialog({
-                content: content,
-                w:800,
-                h:400,
-                button: 'Schließen'
-            });
-            $dialog.btn.click(()=> {wfs.finish()});
-            RpiMaterialInputTemplate.getTemplates('reflexion');
-
-        }
-
-    );
-
-
-    RpiWorkflow.addWorkflowStep(
-        'kriterien',
-        'onSaveButton',
-        [
-            ()=>RpiWorkflow.find('reflexion').finished === true
-        ],
-        function (wfs){
-
-            $dialog = RpiWorkflow.dialog({
-                content: '<p>Du scheinst weitestgehend fertig zu sein. Du kannst dieses Fenster schließen,' +
-                    ' wenn du noch weiter arbeiten möchtest. Die Redaktion wird deine Inhalte anhand folgender ' +
-                    'Kriterien prüfen.</p><ol id="modal_kriterien-liste"></ol>',
-                w:1000,
-                h:630,
-                title: 'Inhalte nochmal prüfen',
-                button: 'Bereit zum Veröffentlichen'
-            });
-
-            $=jQuery;
-            $('#TB_ajaxContent').css({'background-position':'center 80%'});
-            $('#TB_ajaxContent .dialog-content').css({'margin-top':'2%'});
-            $.get(
-                ajaxurl, {
-                    'action': 'getCriteria',
-                },
-                function (response) {
-                    $('#modal_kriterien-liste').append(response);
-                }
-            );
-            $dialog.btn.click(()=> {
-                wfs.finish();
-
-            });
-            wfs.addButton($dialog.btn, 'cancel', 'Weiter arbeiten', tb_remove );
-        },
-        [
-            ()=>false
-        ]
-
-
-
-    );
-
-    RpiWorkflow.addWorkflowStep(
-        'complete',
-        'interval',
-        [
-            ()=>RpiWorkflow.find('kriterien').finished === true
-        ],
-        ()=>{
-            $('.editor-post-save-draft').show();
-            $('#rpi-material-step').unbind();
-            $('#rpi-material-step').on('click',()=>{
-                wp.data.dispatch('core/editor').editPost({status: 'publish'});
-                wp.data.dispatch('core/editor').savePost();
-            });
-            $('#rpi-material-step').html('Veröffentlichen');
-        },
-        [
-            ()=>wp.data.select('core/editor').getCurrentPostAttribute('status')=='publish'
-        ],
-        (wfs)=>wfs.finish()
-    )
-
     wp.domReady(e=>{
+
+
         setTimeout(e=>{
             if(wp.data.select('core/editor').getCurrentPostAttribute('status')=='draft'){
 
@@ -211,7 +28,6 @@ jQuery(document).ready(($)=>{
 
 
     });
-
 
 
 });
@@ -275,14 +91,14 @@ RpiWorkflow ={
              * @param label
              * @param fn
              *
-             * example: wfs.addButton($dialog.btn, 'cancel', 'Weiter arbeiten', tb_remove );
+             * example: wfs.addButton(dialog.btn, 'cancel', 'Weiter arbeiten', tb_remove );
              */
             addButton: function (dialogBtn,id, label, fn){
                 id = this.step +'-' + id;
                 if(jQuery('#'+id).length===0){
                     var btn = jQuery('<button class="button is_secondary" id="'+id+'">'+label+'</button>');
                     btn.click(fn);
-                    btn.insertAfter($dialog.btn);
+                    btn.insertAfter(dialog.btn);
                 }
             }
         };
@@ -297,8 +113,8 @@ RpiWorkflow ={
             window.__RpiWorkflow = setInterval(()=>{
                 this.loop('interval');
 
-            },2000);
-            setTimeout(e=>RpiWorkflow.getWorkflow(),2200);
+            },5000);
+            setTimeout(e=>RpiWorkflow.getWorkflow(),5200);
             this.is_running =true;
         }
 
@@ -321,7 +137,10 @@ RpiWorkflow ={
 
             if(!wfs.finished && RpiWorkflow.getMeta(wfs)){
                 wfs.finished = RpiWorkflow.getMeta(wfs);
-                //console.log('check:',wfs.step, 'finished');
+
+                //continue;
+            }
+            if(wfs.finished){
                 continue;
             }
 
@@ -358,6 +177,7 @@ RpiWorkflow ={
             console.log('type error:',step,position, conditions.toString() + ' is not an array!' );
             is_met = false;
         }
+
         //all conditions should be true
         return is_met;
     },
