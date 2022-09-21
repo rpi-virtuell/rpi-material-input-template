@@ -78,7 +78,7 @@ class RpiMaterialDeactivatedBlocks
                 'fields' => array(
                     array(
                         'key' => 'field_template_post_type',
-                        'label' => 'Welcher Beittragstyp soll für die Eingabe von Materialien verwendet werden?',
+                        'label' => 'Welcher Beitragstyp soll für die Eingabe von Materialien verwendet werden?',
                         'name' => 'template_post_type',
                         'type' => 'select',
                         'instructions' => '',
