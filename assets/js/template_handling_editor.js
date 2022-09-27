@@ -307,8 +307,11 @@ RpiMaterialInputTemplate = {
                 var toolbalEl = editorEl.querySelector('.edit-post-header__toolbar');
                 if (toolbalEl instanceof HTMLElement) {
                     toolbalEl.insertAdjacentHTML('beforeend', template_box_html);
-                    var left = jQuery('#template-config-toggle').offset().left;
-                    $('#template-config-box').offset({left: left});
+                    if(jQuery('#template-config-toggle').length>0){
+                        var left = jQuery('#template-config-toggle').offset().left;
+                        $('#template-config-box').offset({left: left});
+                    }
+
                 }
 
             }
