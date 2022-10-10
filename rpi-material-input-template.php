@@ -42,6 +42,10 @@ class RpiMaterialInputTemplate
         add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
         add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
 
+
+        //kriterien
+        add_filter( 'acf/load_field/name=kriterien', [ $this, 'acf_load_kriterien' ] );
+
         //Autorenseiten
         add_action('pre_get_posts', array($this, 'alter_author_posts'), 999);
         add_action('the_title', array($this, 'the_title'), 10, 2);
@@ -499,7 +503,8 @@ class RpiMaterialInputTemplate
                     $blocks = parse_blocks($post->post_content);
                     foreach ($blocks as $block_key => $block) {
                         if (!empty($block['blockName'])) {
-                            if (in_array($block['blockName'], $this->deactivated_block_types) && $block['blockName'] != 'lazyblock/reli-default-block') {  //&& !in_array($block['blockName'], $existing_blocks)
+                            if (in_array($block['blockName'], $this->deactivated_block_types) && $block['blockName'] != 'lazyblock/reli-default-block') {
+                                //  && !in_array($block['blockName'], $existing_blocks)
                                 //  $existing_blocks[] = $block['blockName'];
                                 $blocks[$block_key]['blockName'] = 'lazyblock/reli-default-block';
                                 $blocks[$block_key]['attrs']['blockUniqueClass'] = 'lazyblock/reli-default-block-' . $block['attrs']['blockId'];
@@ -518,6 +523,35 @@ class RpiMaterialInputTemplate
         }
 
     }
+
+     public function acf_load_kriterien($field){
+
+        $args = [
+		    'post_type' => 'material_criteria',
+		    'numberposts' => -1,
+            'orderby'=>'menu_order',
+            'order'=>'ASC',
+		    'tax_query' => array(
+			    array(
+				    'taxonomy' => 'version',
+				    'field' => 'slug',
+				    'terms' => get_option('current_criteria_version','v1') ,
+				    'include_children' => true,
+				    'operator' => 'IN'
+			    )
+		    )
+	    ];
+
+        $crits = get_posts($args);
+	    if ($crits !== false) {
+             foreach ($crits as $crit){
+                 $field['choices'][ $crit->post_name ] = '<strong>'.$crit->post_title .'</strong> ('.wp_trim_words(wp_strip_all_tags($crit->post_content),15).')' ;
+             }
+	    }
+
+        return $field;
+    }
+
 
     static function getCriteria(){
 	    $version = isset($_GET['version']) ? $_GET['version'] : 'v1';
@@ -565,6 +599,8 @@ class RpiMaterialInputTemplate
 	    die();
 
     }
+
+
     static function getTemplates()
     {
 
