@@ -40,6 +40,10 @@ class RpiMaterialInputTemplate
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_submission_filter', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_admin_pre_render', array($this, 'add_template_selectbox_to_form'));
+
+
+        add_filter('gform_pre_render', array($this, 'preselect_bundesland_in_form'),999);
+
         add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
 
 
@@ -127,7 +131,7 @@ class RpiMaterialInputTemplate
                 'revisions',
                 'author'
             ],
-            'taxonomies' => ['kinderaktivitaten', 'kinderfahrung', 'anlass', 'alter', 'schlagwort'],
+            'taxonomies' => ['kinderaktivitaten', 'kinderfahrung', 'anlass', 'alter', 'schlagwort', 'bundesland'],
             "show_in_graphql" => false,
         ];
 
@@ -326,6 +330,18 @@ class RpiMaterialInputTemplate
         }
 
     }
+    public function preselect_bundesland_in_form($form){
+
+        foreach ($form['fields'] as &$field) {
+            if ($field->type != 'select') {
+                continue;
+            }elseif ($field->adminLabel = "Bundesland"){
+                $field->defaultValue= get_user_meta(get_current_user_id(),'bundesland_id',false) ;
+            }
+        }
+        return $form;
+
+    }
 
     public function add_template_selectbox_to_form($form)
     {
@@ -394,6 +410,22 @@ class RpiMaterialInputTemplate
 	        //$post->post_content .= '<!-- wp:lazyblock/reli-leitfragen-anhang /-->';
 	        $post->post_content .= '<!-- wp:paragraph {"className":"hidden"} -->' . "\n" . '<p class="hidden">/</p>' . "\n" . '<!-- /wp:paragraph -->';
             wp_update_post($post);
+
+
+            $bundesland = '';
+            /* bundesland_id im usermeta speichern, um beim nächsten material das Bundesland des Users vor auszuwählen */
+            $terms = wp_get_post_terms($post->ID,'bundesland');
+            foreach ($terms as $term){
+                if(is_a($term,'WP_Term')){
+                    update_user_meta(get_current_user_id(),'bundesland_id',$term->term_id);
+                    $bundesland = $term->name;
+                }
+
+            }
+
+            do_action('new_material_created', $post, wp_get_current_user(), $bundesland);
+
+
         }
 
         wp_redirect(get_site_url() . '/wp-admin/post.php?post=' . $entry['post_id'] . '&action=edit');
