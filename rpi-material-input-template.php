@@ -43,6 +43,7 @@ class RpiMaterialInputTemplate
 
 
         add_filter('gform_pre_render', array($this, 'preselect_bundesland_in_form'),999);
+        add_filter('gform_pre_render', array($this, 'prepare_anmeldung_form'),999);
 
         add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
 
@@ -328,6 +329,34 @@ class RpiMaterialInputTemplate
             $form = unserialize(file_get_contents(__DIR__ . '/form.dat'));
             $formId = GFAPI::add_form($form);
         }
+
+    }
+    public function prepare_anmeldung_form($form){
+
+        if("Fortbildungsanmeldung" === $form['title']){
+
+            if(isset($_GET['fobi'])){
+
+                $fobi = get_post($_GET['fobi']);
+
+
+
+            }
+
+            foreach ($form['fields'] as $no=>&$field) {
+                if ('Titel der Fortbildung' === $field->label) {
+                    if(is_user_logged_in()){
+                        $field->defaultValue = $fobi->post_title.' : '.wp_get_current_user()->display_name;
+                    }else{
+                        $field->defaultValue = $fobi->post_title;
+                    }
+                }
+
+            }
+        }
+
+        return $form;
+
 
     }
     public function preselect_bundesland_in_form($form){
