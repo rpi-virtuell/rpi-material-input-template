@@ -333,13 +333,46 @@ class RpiMaterialInputTemplate
     }
     public function prepare_anmeldung_form($form){
 
-        if("Fortbildungsanmeldung" === $form['title']){
 
+        if("Fortbildungsanmeldung" === $form['title']){
+            $fobi = null;
             if(isset($_GET['fobi'])){
 
                 $fobi = get_post($_GET['fobi']);
 
+            }
+            if(!is_a($fobi,'WP_Post')){
+                echo  "Aufruf unzulässig. ID fehlt oder Fortbildung existiert nicht";
+                return ;
 
+            }
+
+            $args = [
+                'post_type' => 'anmeldung',
+                'meta_query'=>[
+                    'relation' => 'AND',
+                    [
+                       'key'=>'user',
+                       'value'=> get_current_user_id(),
+                       'compare'=>'=',
+                       'type' => 'NUMERIC'
+                    ],
+                    [
+                       'key'=>'fobi',
+                       'value'=> intval($_GET['fobi']),
+                       'compare'=>'=',
+                       'type' => 'NUMERIC'
+                    ]
+                ]
+            ];
+            $posts = get_posts($args);
+            if(count($posts)>0){
+
+                $msg =  "Du hast dich bereits für die Fortbildung angemeldet";
+
+                wp_redirect(get_permalink($_GET['fobi'])."?msg=".$msg);
+
+                return ;
 
             }
 
@@ -351,8 +384,15 @@ class RpiMaterialInputTemplate
                         $field->defaultValue = $fobi->post_title;
                     }
                 }
+                if ('AnmeldungTitelBlock' === $field->label) {
+
+                    $html = '<div>Ich möchte mich anmelden zu fer Fortbildung: <strong>%s</strong><hr></div>';
+                    $field->content = sprintf($html,$fobi->post_title);
+
+                }
 
             }
+
         }
 
         return $form;
