@@ -1,8 +1,20 @@
+:root {
+    --reli-accent-color: var(--linkInitialColor);
+    --reli-accent-color-hover: var(--linkHoverColor);
+    --reli-accent-background: #fff;
+    --reli-accent-background-hover: #e0e0e0;
+    --reli-background-color: #DCE2F0;
+    --reli-pink-accent-color: #fe228c;
+    --reli-blue-accent-color: #04a3e5;
+    --reli-yellow-accent-color: #e7c945;
+}
+
 body,.editor-styles-wrapper {
     scroll-behavior: smooth;
 }
-.editor-styles-wrapper .edit-post-visual-editor__post-title-wrapper > h1{
-    font-size: 30px!important;
+
+.edit-post-visual-editor__post-title-wrapper .editor-post-title{
+    margin-left: 0;
 }
 .wp-block .block-editor-rich-text__editable{
     font-size: 16px;
@@ -11,9 +23,18 @@ body,.editor-styles-wrapper {
     margin-left: auto;
     margin-right: auto;
     background-color: white;
-    padding: 0 30px;
-    margin-top: 30px;
-    margin-bottom: 30px;
+    padding: 0 var(--boxed-content-spacing);
+    margin-top: var(--boxed-content-spacing);
+    margin-bottom: var(--boxed-content-spacing);
+}
+
+.edit-post-visual-editor__post-title-wrapper {
+    display: flex;
+    background-color: var(--reli-background-color);
+    margin: calc(var(--boxed-content-spacing)*-1) calc(var(--boxed-content-spacing)*-1) 0;
+    padding: var(--boxed-content-spacing) var(--boxed-content-spacing) 0;
+    height: fit-content;
+    border-bottom: 2px solid var(--headings-color);
 }
 
 .reli-inserter a {

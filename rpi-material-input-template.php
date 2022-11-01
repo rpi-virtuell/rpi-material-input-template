@@ -201,6 +201,23 @@ class RpiMaterialInputTemplate
 				)
 			),
 		));
+        register_meta('post', 'workflow_steps', array(
+			'single' => true,
+			'type' => 'array',
+			'show_in_rest' => array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type' => 'object',
+						'properties' => array(
+							'step'=>['type'=>'string'],
+							'finished'=>['type'=>'boolean'],
+						),
+						'additionalProperties' => true
+					),
+				)
+			),
+		));
 
 	}
 
@@ -370,7 +387,7 @@ class RpiMaterialInputTemplate
 
                 $msg =  "Du hast dich bereits für die Fortbildung angemeldet";
 
-                wp_redirect(get_permalink($_GET['fobi'])."?msg=".$msg);
+                wp_redirect(get_permalink($_GET['fobi'])."?error_msg=".$msg);
 
                 return ;
 
@@ -386,7 +403,7 @@ class RpiMaterialInputTemplate
                 }
                 if ('AnmeldungTitelBlock' === $field->label) {
 
-                    $html = '<div>Ich möchte mich anmelden zu fer Fortbildung: <strong>%s</strong><hr></div>';
+                    $html = '<div>Ich möchte mich anmelden zu der Fortbildung: <strong>%s</strong><hr></div>';
                     $field->content = sprintf($html,$fobi->post_title);
 
                 }
@@ -454,6 +471,10 @@ class RpiMaterialInputTemplate
 
     function add_template_and_redirect($entry, $form)
     {
+
+        if("Materialeingabe" !== $form['title']){
+            return;
+        }
         $template_ids = array();
 
         foreach ($_POST as $input_key => $input_value) {

@@ -13,14 +13,22 @@ jQuery(document).ready(($)=>{
 
 
     $(window).on('post_save',(e, post_status)=>{
+
+        if('publish' === post_status){
+
+
+        }
+
         RpiWorkflow.onSave(post_status);
     });
 
     wp.domReady(e=>{
 
 
+
+
         setTimeout(e=>{
-            if(wp.data.select('core/editor').getCurrentPostAttribute('status')=='draft'){
+            if(wp.data.select("core/editor").getEditedPostAttribute('status')=='draft'){
 
                 RpiWorkflow.init();
             }
@@ -112,15 +120,16 @@ RpiWorkflow ={
         if(!this.is_running){
             window.__RpiWorkflow = setInterval(()=>{
                 this.loop('interval');
-
             },5000);
-            setTimeout(e=>RpiWorkflow.getWorkflow(),5200);
+            setTimeout(e=>{RpiWorkflow.loop('interval'); RpiWorkflow.getWorkflow();},5200);
             this.is_running =true;
         }
 
     },
     onSave:function() {
-        this.loop('onSaveButton')
+        this.loop('onSaveButton');
+
+
     },
 
     loop: function(type){
@@ -155,6 +164,8 @@ RpiWorkflow ={
                 wfs.do_start(wfs);
             }
         }
+        this.check_completed();
+
     },
 
     is_met: function (conditions, step, position){
@@ -268,36 +279,76 @@ RpiWorkflow ={
         };
         return false;
     },
-    setMeta: function (wfs){
+    setMeta: function (wfs) {
         let user = wp.data.select("core").getCurrentUser();
         let user_steps = user.meta.workflow_step;
-        let post_id =  wp.data.select("core/editor").getCurrentPostId();
+        let post_id = wp.data.select("core/editor").getCurrentPostId();
         updates = [];
-        for(const user_step of user_steps){
-            if(user_step.step == wfs.step && user_step.post_id == post_id){
 
-            }else{
+        for (const user_step of user_steps) {
+            if (user_step.step == wfs.step && user_step.post_id == post_id) {
+
+            } else {
                 updates.push(user_step)
             }
         }
-        updates.push({post_id:post_id,step:wfs.step,finished:wfs.finished});
+        updates.push({post_id: post_id, step: wfs.step, finished: wfs.finished});
         user.meta.workflow_step = updates;
         wp.data.dispatch("core").saveUser(user);
-    },
-    getWorkflow: function (){
 
-        this.loop('interval');
-        this.loop('onSaveButton');
+        updates = [];
+        let workflow_steps = wp.data.select("core/editor").getCurrentPost().meta.workflow_steps;
+        let i = 0;
+        let step_exits = false;
+        for (const item of workflow_steps) {
+
+            if (item.step == wfs.step) {
+                workflow_steps[i]=  wfs.step;
+                step_exits = true;
+            }
+            i++;
+        }
+        if(!step_exits){
+            workflow_steps.push({step: wfs.step, finished: wfs.finished});
+        }
+
+        wp.data.dispatch('core/editor').editPost({meta: {workflow_steps: workflow_steps}});
+
+    },
+    getWorkflow: function(){
+
+        console.log('getWorkflow',this.workflow);
+        //this.loop('onSaveButton');
 
         let completed = [];
+        var f=0;
         for(step of this.workflow){
             if(step.finished){
+                this.setMeta(step);
                 completed.push(step.step);
+                f++;
             }
         }
+        if(f==this.workflow.length){
+            //all completed
+            return 'all completed';
+        }
         return 'completed: ' + completed.join(', ');
-    }
+    },
 
+    check_completed(){
+
+        for(step of this.workflow){}
+        if(step.finished){
+            $('.editor-post-save-draft').show();
+            $('#rpi-material-step').unbind();
+            $('#rpi-material-step').on('click',()=>{
+                wp.data.dispatch('core/editor').editPost({status: 'publish'});
+                wp.data.dispatch('core/editor').savePost();
+            });
+            $('#rpi-material-step').html('Veröffentlichen');
+        }
+    }
 
 
 }

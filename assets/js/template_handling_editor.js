@@ -17,6 +17,8 @@
                 return;
             }
 
+            $('.edit-post-header > div:first-child').click(e=>{location.href=wp.data.select('core/editor').getPermalink(); return false;});
+
 
             if (post.status == 'draft') {
                 //verhindern, dass  user wieder in das formular zurück switchen
@@ -131,28 +133,22 @@
                     }
 
                 }, 2000);
+
+
+                $('.edit-post-header-toolbar__inserter-toggle').ready(() => {
+                    console.log('edit-post-header-toolbar__inserter-toggle ready');
+                    RpiMaterialInputTemplate.addToolbar($);
+                });
+
+
+
+                wp.data.select("core/editor").getBlocks().forEach((b) => {
+                    if (b.attributes.is_valid) {
+                        //console.log('first fetch', b.attributes);
+                        $('#block-' + b.clientId + ' .lazyblock').addClass('is_valid');
+                    }
+                });
             }
-
-            $('.edit-post-header-toolbar__inserter-toggle').ready(() => {
-                console.log('edit-post-header-toolbar__inserter-toggle ready');
-                RpiMaterialInputTemplate.addToolbar($);
-            });
-
-            //on content generation
-
-            $(window).on('typing', (e, block, main_block, target) => {
-
-
-
-            });
-
-
-            wp.data.select("core/editor").getBlocks().forEach((b) => {
-                if (b.attributes.is_valid) {
-                    //console.log('first fetch', b.attributes);
-                    $('#block-' + b.clientId + ' .lazyblock').addClass('is_valid');
-                }
-            });
         });
 
         //acf-field-user mit wp author id setzen
@@ -172,32 +168,48 @@
         let blockList = editor.getClientIdsWithDescendants();
         let authorID = wp.data.select('core/editor').getCurrentPostAttribute('author');
         let time = () => Math.floor(Date.now() / 1000);
-        var timer = 0,newTime;
+        var timer = time(),newTime;
 
         wp.data.subscribe(() => {
+
             newTime = time();
+
 
             if (wp.data.select('core/editor').isSavingPost() && !wp.data.select('core/editor').isAutosavingPost()) {
                 jQuery(window).trigger('post_save', [wp.data.select('core/editor').getEditedPostAttribute('status')]);
             }
+            const currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+            if ( 'publish' === currentPostStatus && RpiWorkflow.is_running) {
+                if( wp.data.select('core/editor').didPostSaveRequestSucceed() ){
+
+                   // console.log(wp.data.select('core/editor').getPermalink());
+
+                    setTimeout(e=>{location.href=wp.data.select('core/editor').getPermalink();},1000);
+
+                }
+
+            }
 
             if (wp.data.select('core/editor').isTyping()) {
-                if (newTime > timer +3) {
+                if (newTime > timer +1) {
 
                     let currentBlock = editor.getSelectedBlock();
                     if (currentBlock) {
                         let targetBlock = editor.getBlock(editor.getBlockHierarchyRootClientId(currentBlock.clientId));
                         let target = document.getElementById('block-' + currentBlock.clientId);
                         if (target && targetBlock){
-                            console.log('trigger typing');
-                            RpiMaterialInputTemplate.watchTyping(currentBlock, targetBlock, target);
+                            //console.log('trigger typing');
+                            if(RpiMaterialInputTemplate.is_watching ===false){
+                                RpiMaterialInputTemplate.watchTyping(currentBlock, targetBlock, target);
+                            }
+
                             //jQuery(window).trigger('typing', [currentBlock, targetBlock, target]);
                         }
 
 
 
                     }
-
+                    console.log('typing', newTime, timer+3);
                     timer = time();
                 }
             }
@@ -251,6 +263,7 @@
 
 RpiMaterialInputTemplate = {
     has_progress: false,
+    is_watching:false,
     init: function () {
 
         this.resetStaticBlockPositions();
@@ -329,6 +342,11 @@ RpiMaterialInputTemplate = {
 
     },
     addProgressBar: function (label, status) {
+
+        if('draft' !== wp.data.select('core/editor').getCurrentPostAttribute('status')){
+            return;
+        }
+
         const $ = jQuery;
         if ($('#rpi-material-status').length === 0) {
             $('.rpi-material-toolbar').append('<div id="rpi-material-status" class="components-button">Status: &nbsp; ' +
@@ -365,6 +383,9 @@ RpiMaterialInputTemplate = {
         if (!block) {
             return;
         }
+
+        this.is_watching = true;
+
         var parent_id = main_block.clientId;
 
         //$el = zugehöriger html block als jQuery Element
@@ -410,10 +431,11 @@ RpiMaterialInputTemplate = {
                 if (jQuery('#progress-' + parent_id).length === 0) {
                     jQuery('<div id="progress-' + parent_id + '" class="block-progress" style=""></div>')
                         .insertBefore($el);
+                    jQuery('#progress-' + parent_id).animate({'width':'1%'},{'duration':20});
                 }
-                jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});
-                jQuery('#progress-' + parent_id).css({'border-bottom': '3px solid green'});
-                jQuery('#progress-' + parent_id).animate({'width':+percent+'%'},{'duration':2000});
+                //jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});
+                jQuery('#progress-' + parent_id).css({'border-bottom': '6px solid #adff2f'});
+                jQuery('#progress-' + parent_id).animate({'width':+percent+'%'},{'duration':1000});
 
                 //Wenn 100% Fortschritt erreicht sind:
                 if (percent === 100) {
@@ -423,12 +445,14 @@ RpiMaterialInputTemplate = {
                     }
                     jQuery('#progress-' + parent_id).remove();
                 }
+                this.is_watching = false;
                 return;
             }
         }
         if (main_block.attributes.is_teaser) {
             RpiMaterialInputTemplate.writeExcerpt(main_block);
         }
+        this.is_watching = false;
     },
 
     checkContent: function () {
