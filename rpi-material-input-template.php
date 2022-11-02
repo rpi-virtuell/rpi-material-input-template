@@ -10,7 +10,7 @@ Author URI: https://github.com/FreelancerAMP
 License: A "Slug" license name e.g. GPL2
 */
 
-require_once('rpi-material-deactivted-blocks.php');
+require_once('inc/rpi-material-deactivted-blocks.php');
 
 class RpiMaterialInputTemplate
 {
@@ -337,13 +337,13 @@ class RpiMaterialInputTemplate
     {
 //             TODO:: DEBUG resource to create importable file for Gravity Forms
 //                    $form = GFAPI::get_form(63);
-//                   file_put_contents(__DIR__.'/form.dat', serialize($form));
+//                   file_put_contents(__DIR__.'/backup/form.dat', serialize($form));
 
         global $wpdb;
         $form_title = 'materialeingabe';
         $formssql = "SELECT ID FROM {$wpdb->prefix}gf_form WHERE title = %s and is_trash = 0;";
         if (empty($formId = $wpdb->get_var($wpdb->prepare($formssql, $form_title)))) {
-            $form = unserialize(file_get_contents(__DIR__ . '/form.dat'));
+            $form = unserialize(file_get_contents(__DIR__ . '/backup/form.dat'));
             $formId = GFAPI::add_form($form);
         }
 
@@ -535,7 +535,7 @@ class RpiMaterialInputTemplate
         );
         wp_enqueue_style(
             'template_handling_style',
-            plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.css'
+            plugin_dir_url(__FILE__) . '/assets/css/template_handling_editor.css'
         );
     }
 
@@ -853,4 +853,4 @@ class RpiMaterialInputTemplate
 
 new RpiMaterialInputTemplate();
 
-include_once ("class-rpi-workflow.php");
+require_once ("inc/rpi-workflow.php");
