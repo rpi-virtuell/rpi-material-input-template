@@ -17,7 +17,7 @@
                 return;
             }
 
-            $('.edit-post-header > div:first-child').click(e=>{location.href=wp.data.select('core/editor').getPermalink(); return false;});
+
 
 
             if (post.status == 'draft') {
@@ -27,6 +27,10 @@
                         $('#template-config-toggle').click();
                     }
                 });
+                $('.edit-post-header > div:first-child').click(e=>{location.href='/meinprofil'; return false;});
+
+            }else{
+                $('.edit-post-header > div:first-child').click(e=>{location.href=wp.data.select('core/editor').getPermalink(); return false;});
             }
             //blockeditor ui aufräumen nicht core Zeugs ausblenden;
 
