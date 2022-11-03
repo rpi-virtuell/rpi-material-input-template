@@ -152,7 +152,7 @@ class RpiWorkflow {
 		echo "});"; //end--jQuery(document).ready------------------------------->
 
 		$script = ob_get_clean();
-		file_put_contents(__DIR__.'/assets/js/workflow_steps.js',$script);
+		file_put_contents(plugin_dir_path(__DIR__).'/assets/js/workflow_steps.js',$script);
 
 	}
 
@@ -823,14 +823,14 @@ class RpiWorkflow {
 		if (!is_admin()) return;
 		wp_enqueue_script(
 			'workflow_handling',
-			plugin_dir_url(__FILE__) . '/assets/js/rpi-workflow.js',
+			plugin_dir_url(__DIR__) . '/assets/js/rpi-workflow.js',
 			array(),
 			'1.0',
 			true
 		);
 		wp_enqueue_script(
 			'workflow_steps',
-			plugin_dir_url(__FILE__) . '/assets/js/workflow_steps.js',
+			plugin_dir_url(__DIR__) . '/assets/js/workflow_steps.js',
 			array(),
 			'1.0',
 			true

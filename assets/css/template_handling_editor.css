@@ -31,7 +31,7 @@ body,.editor-styles-wrapper {
 .edit-post-visual-editor__post-title-wrapper {
     display: flex;
     background-color: var(--reli-background-color);
-    margin: calc(var(--boxed-content-spacing)*-1) calc(var(--boxed-content-spacing)*-1) 0;
+    margin: calc(var(--boxed-content-spacing)*-1) calc(var(--boxed-content-spacing)*-1) var(--boxed-content-spacing) ;
     padding: var(--boxed-content-spacing) var(--boxed-content-spacing) 0;
     height: fit-content;
     border-bottom: 2px solid var(--headings-color);

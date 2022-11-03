@@ -30,6 +30,7 @@ class RpiMaterialInputTemplate
         add_action('init', array($this, 'add_custom_taxonomies'));
         add_action('init', array($this, 'register_gravity_form'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
+        add_action('admin_head', array($this, 'blockeditor_head_scripts'));
 
         add_action('admin_head', array($this, 'supply_option_data_to_js'),20);
 
@@ -106,6 +107,7 @@ class RpiMaterialInputTemplate
             "exclude_from_search" => false,
             'capability_type' => array('material', 'materials'),
             "capabilities" => array(
+                'edit_post' => 'edit_material',
                 'edit_posts' => 'edit_materials',
                 'edit_others_posts' => 'edit_others_materials',
                 'read_private_posts' => 'read_private_materials',
@@ -309,6 +311,7 @@ class RpiMaterialInputTemplate
         $role->add_cap('level_0');
         $role->add_cap('read_material');
         $role->add_cap('edit_materials');
+        $role->add_cap('edit_material');
         $role->add_cap('edit_published_materials');
         $role->add_cap('delete_materials');
         $role->add_cap('publish_materials');
@@ -526,17 +529,36 @@ class RpiMaterialInputTemplate
     function blockeditor_js()
     {
         if (!is_admin()) return;
-        wp_enqueue_script(
-            'template_handling',
-            plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js',
-            array(),
-            '1.0',
-            true
-        );
+
+        if('materialien'===get_post_type()){
+            wp_enqueue_script(
+                'template_handling',
+                plugin_dir_url(__FILE__) . '/assets/js/template_handling_editor.js',
+                array(),
+                '1.0',
+                true
+            );
+            wp_enqueue_style(
+                'template_handling_style',
+                plugin_dir_url(__FILE__) . '/assets/css/template_handling_editor.css'
+            );
+        }
         wp_enqueue_style(
-            'template_handling_style',
-            plugin_dir_url(__FILE__) . '/assets/css/template_handling_editor.css'
+            'customizing_style',
+            plugin_dir_url(__FILE__) . '/assets/css/customizing.css'
         );
+
+
+    }
+
+    function blockeditor_head_scripts(){
+        ?>
+        <style>
+            :root {
+                --reli-modal-background-url: url('<?php echo plugin_dir_url(__FILE__)?>/assets/background.png');
+                }
+        </style>
+        <?php
     }
 
     public function supply_option_data_to_js()

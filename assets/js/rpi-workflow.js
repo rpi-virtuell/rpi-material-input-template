@@ -243,7 +243,7 @@ RpiWorkflow ={
             jQuery('#TB_ajaxContent').html(args.content);
 
             jQuery('#TB_ajaxContent').css({
-                'background-image':'url(/wp-content/plugins/rpi-material-input-template-main/assets/background.png)',
+                'background-image':'var(--reli-modal-background-url)',
                 'background-size': '100%',
                 'background-repeat': 'no-repeat',
                 'background-position': 'center'
