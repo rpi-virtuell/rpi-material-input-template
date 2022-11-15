@@ -325,6 +325,7 @@ class RpiMaterialInputTemplate
             "capabilities" => array(
                 'edit_post' => 'edit_fortbildung',
                 'edit_posts' => 'edit_fortbildungs',
+                'edit_published_posts' => 'edit_published_fortbildungs',
                 'edit_others_posts' => 'edit_others_fortbildungs',
                 'read_private_posts' => 'read_private_fortbildungs',
                 'publish_posts' => 'publish_fortbildungs',
@@ -532,9 +533,15 @@ class RpiMaterialInputTemplate
 
         $role->add_cap('edit_fortbildung');
         $role->add_cap('edit_fortbildungs');
+        $role->add_cap('edit_published_fortbildungs');
         $role->add_cap('publish_fortbildungs');
         $role->add_cap('read_fortbildung');
         $role->add_cap('delete_fortbildungs');
+
+            $role->add_cap('manage_organisation');
+            $role->add_cap('edit_organisation');
+            $role->add_cap('assign_organisation');
+            $role->add_cap('delete_organisation');
 
         add_role('autorin', 'Autor:in');
 
@@ -558,8 +565,6 @@ class RpiMaterialInputTemplate
          *  Rechte, Begriffe zu Taxonomien hinzuzufügen
          */
 
-        $role->add_cap('assign_organisation');
-        $role->add_cap('manage_organisation');
 
 
     }
