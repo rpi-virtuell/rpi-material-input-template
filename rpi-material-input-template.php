@@ -36,6 +36,7 @@ class RpiMaterialInputTemplate
 
 	    add_action('admin_init', array($this, 'check_for_broken_blocks'));
         add_action('save_post', array($this, 'add_template_att_to_blocks'), 10, 3);
+        add_action('post_updated', array($this, 'on_publish_material'), 10, 3);
 
         add_filter('gform_pre_render', array($this, 'add_template_selectbox_to_form'));
         add_filter('gform_pre_validation', array($this, 'add_template_selectbox_to_form'));
@@ -45,9 +46,7 @@ class RpiMaterialInputTemplate
 
         add_filter('gform_pre_render', array($this, 'preselect_bundesland_in_form'),999);
         add_filter('gform_pre_render', array($this, 'prepare_anmeldung_form'),999);
-
         add_action('gform_after_submission', array($this, 'add_template_and_redirect'), 10, 2);
-
 
         //kriterien
         add_filter( 'acf/load_field/name=kriterien', [ $this, 'acf_load_kriterien' ] );
@@ -759,7 +758,8 @@ class RpiMaterialInputTemplate
 
             }
 
-            do_action('new_material_created', $post, wp_get_current_user(), $bundesland);
+            do_action('new_material_created', ['post' => $post, 'user'=>wp_get_current_user(), 'bundesland'=>$bundesland]);
+
 
 
         }
@@ -877,6 +877,28 @@ class RpiMaterialInputTemplate
             $post->post_content = serialize_blocks($blocks);
         }
     }
+
+    public function on_publish_material($post_ID, $post, $post_old){
+
+        if (is_a($post, 'WP_Post') && $post->post_status == 'publish' && $post->post_type === get_field('template_post_type', 'option')){
+
+            if($post_old->post_status != 'publish'){
+
+                /**
+                *  do_action('new_material_created', WP_POST $post, WP_USER $user, string $bundesland);
+                 */
+                $term_id = get_field('bundesland_id', 'user_'.get_current_user_id() );
+                $bundesland = get_term($term_id);
+                $user = get_userdata(get_current_user_id());
+
+                do_action('new_material_published',  ['post' => $post, 'user'=>wp_get_current_user(), 'bundesland'=>$bundesland]);
+
+            }
+
+        }
+
+    }
+
 
     public function check_for_broken_blocks()
     {
