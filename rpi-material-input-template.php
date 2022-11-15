@@ -179,8 +179,211 @@ class RpiMaterialInputTemplate
 
         register_post_type("materialtyp_template", $args);
 
+	/**
+	 * Post Type: Kriterien.
+	 */
 
-    }
+	$labels = [
+		"name" => esc_html__( "Kriterien", "blocksy" ),
+		"singular_name" => esc_html__( "Kriterium", "blocksy" ),
+	];
+
+	$args = [
+		"label" => esc_html__( "Kriterien", "blocksy" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"rest_namespace" => "wp/v2",
+		"has_archive" => true,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		"capability_type" => "page",
+		"map_meta_cap" => true,
+		"hierarchical" => true,
+		"can_export" => true,
+		"rewrite" => [ "slug" => "material_criteria", "with_front" => true ],
+		"query_var" => true,
+		"menu_position" => 50,
+		"menu_icon" => "dashicons-editor-spellcheck",
+		"supports" => [ "title", "editor", "page-attributes" ],
+		"taxonomies" => [ "version" ],
+		"show_in_graphql" => false,
+	];
+
+	register_post_type( "material_criteria", $args );
+
+	/**
+	 * Post Type: Eingabehilfen.
+	 */
+
+	$labels = [
+		"name" => esc_html__( "Eingabehilfen", "blocksy" ),
+		"singular_name" => esc_html__( "Eingabehilfe", "blocksy" ),
+	];
+
+	$args = [
+		"label" => esc_html__( "Eingabehilfen", "blocksy" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"rest_namespace" => "wp/v2",
+		"has_archive" => false,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		"capability_type" => "post",
+		"map_meta_cap" => true,
+		"hierarchical" => false,
+		"can_export" => false,
+		"rewrite" => [ "slug" => "workflow", "with_front" => true ],
+		"query_var" => true,
+		"menu_position" => 50,
+		"menu_icon" => "dashicons-format-status",
+		"supports" => [ "title", "page-attributes" ],
+		"show_in_graphql" => false,
+	];
+
+	register_post_type( "workflow", $args );
+
+	/**
+	 * Post Type: Organisationen.
+	 */
+
+	$labels = [
+		"name" => esc_html__( "Organisationen", "blocksy" ),
+		"singular_name" => esc_html__( "Organisation", "blocksy" ),
+	];
+
+	$args = [
+		"label" => esc_html__( "Organisationen", "blocksy" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"rest_namespace" => "wp/v2",
+		"has_archive" => true,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		"capability_type" => "post",
+		"map_meta_cap" => true,
+		"hierarchical" => true,
+		"can_export" => false,
+		"rewrite" => [ "slug" => "organisation", "with_front" => true ],
+		"query_var" => true,
+		"supports" => [ "title", "editor", "thumbnail", "excerpt", "revisions", "author" ],
+		"show_in_graphql" => false,
+	];
+
+	register_post_type( "organisation", $args );
+
+	/**
+	 * Post Type: Fortbildungen.
+	 */
+
+	$labels = [
+		"name" => esc_html__( "Fortbildungen", "blocksy" ),
+		"singular_name" => esc_html__( "Fortbildung", "blocksy" ),
+	];
+
+	$args = [
+		"label" => esc_html__( "Fortbildungen", "blocksy" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"rest_namespace" => "wp/v2",
+		"has_archive" => true,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		 'capability_type' => array('fortbildung', 'fortbildungs'),
+            "capabilities" => array(
+                'edit_post' => 'edit_fortbildung',
+                'edit_posts' => 'edit_fortbildungs',
+                'edit_others_posts' => 'edit_others_fortbildungs',
+                'read_private_posts' => 'read_private_fortbildungs',
+                'publish_posts' => 'publish_fortbildungs',
+                'read_post' => 'read_fortbildung',
+                'delete_others_posts' => 'delete_others_fortbildungs',
+                'delete_published_posts' => 'delete_published_fortbildungs',
+                'delete_posts' => 'delete_fortbildungs',
+            ),
+		"map_meta_cap" => true,
+		"hierarchical" => false,
+		"can_export" => false,
+		"rewrite" => [ "slug" => "fortbildung", "with_front" => true ],
+		"query_var" => true,
+		"supports" => [ "title", "editor", "thumbnail", "excerpt", "comments", "revisions", "author" ],
+		"taxonomies" => [ "bundesland" ],
+		"show_in_graphql" => false,
+	];
+
+	register_post_type( "fortbildung", $args );
+
+	/**
+	 * Post Type: Anmeldungen.
+	 */
+
+	$labels = [
+		"name" => esc_html__( "Anmeldungen", "blocksy" ),
+		"singular_name" => esc_html__( "Anmeldung", "blocksy" ),
+	];
+
+	$args = [
+		"label" => esc_html__( "Anmeldungen", "blocksy" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"rest_namespace" => "wp/v2",
+		"has_archive" => false,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		"capability_type" => "post",
+		"map_meta_cap" => true,
+		"hierarchical" => false,
+		"can_export" => false,
+		"rewrite" => [ "slug" => "anmeldung", "with_front" => true ],
+		"query_var" => true,
+		"menu_position" => 100,
+		"menu_icon" => "dashicons-star-empty",
+		"supports" => [ "title" ],
+		"show_in_graphql" => false,
+	];
+
+	register_post_type( "anmeldung", $args );
+}
+
 
 	public function register_custom_user_field(){
 
@@ -298,7 +501,39 @@ class RpiMaterialInputTemplate
             $role->add_cap('edit_organisation');
             $role->add_cap('assign_organisation');
             $role->add_cap('delete_organisation');
+
+            $role->add_cap('edit_fortbildung');
+            $role->add_cap('edit_fortbildungs');
+            $role->add_cap('edit_others_fortbildungs');
+            $role->add_cap('read_private_fortbildungs');
+            $role->add_cap('publish_fortbildungs');
+            $role->add_cap('read_fortbildung');
+            $role->add_cap('delete_others_fortbildungs');
+            $role->add_cap('delete_published_fortbildungs');
+            $role->add_cap('delete_fortbildungs');
+
         }
+
+        add_role('anbieterin', 'Anbieter:in');
+
+        $role= get_role('anbieterin');
+        $role->add_cap('upload_files');
+        $role->add_cap('read');
+        $role->add_cap('level_2');
+        $role->add_cap('level_1');
+        $role->add_cap('level_0');
+        $role->add_cap('read_material');
+        $role->add_cap('edit_materials');
+        $role->add_cap('edit_material');
+        $role->add_cap('edit_published_materials');
+        $role->add_cap('delete_materials');
+        $role->add_cap('publish_materials');
+
+        $role->add_cap('edit_fortbildung');
+        $role->add_cap('edit_fortbildungs');
+        $role->add_cap('publish_fortbildungs');
+        $role->add_cap('read_fortbildung');
+        $role->add_cap('delete_fortbildungs');
 
         add_role('autorin', 'Autor:in');
 
@@ -314,6 +549,9 @@ class RpiMaterialInputTemplate
         $role->add_cap('edit_published_materials');
         $role->add_cap('delete_materials');
         $role->add_cap('publish_materials');
+
+        $role->add_cap('read_fortbildung');
+
 
         /**
          *  Rechte, Begriffe zu Taxonomien hinzuzufügen
