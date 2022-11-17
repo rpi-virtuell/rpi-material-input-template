@@ -880,6 +880,7 @@ class RpiMaterialInputTemplate
 
     public function on_publish_material($post_ID, $post, $post_old){
 
+
         if (is_a($post, 'WP_Post') && $post->post_status == 'publish' && $post->post_type === get_field('template_post_type', 'option')){
 
             if($post_old->post_status != 'publish'){
@@ -889,9 +890,8 @@ class RpiMaterialInputTemplate
                  */
                 $term_id = get_field('bundesland_id', 'user_'.get_current_user_id() );
                 $bundesland = get_term($term_id);
-                $user = get_userdata(get_current_user_id());
 
-                do_action('new_material_published',  ['post' => $post, 'user'=>wp_get_current_user(), 'bundesland'=>$bundesland]);
+                do_action('new_material_published',  ['post' => $post, 'user'=>wp_get_current_user(), 'bundesland'=>$bundesland->name]);
 
             }
 

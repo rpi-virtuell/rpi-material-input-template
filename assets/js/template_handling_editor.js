@@ -507,7 +507,7 @@ RpiMaterialInputTemplate = {
         let total = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.minimum_characters > 0).length;
         let ok = wp.data.select('core/block-editor').getBlocks().filter((b) => b.attributes.is_valid === true).length;
         let percent = ok * 100 / total;
-        //console.log(percent,ok,total);
+        //console.log('displayWritingProgress', percent,ok,total);
 
 
         if(percent>0){
@@ -533,10 +533,12 @@ RpiMaterialInputTemplate = {
     },
 
     writeExcerpt: function (block) {
+
         const parent_id = block.clientId;
         var text = jQuery('#block-' + parent_id + ' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi, '');
         var post_id = wp.data.select('core/editor').getCurrentPost().id;
         wp.data.dispatch('core/editor').editPost({'id': post_id, 'excerpt': text});
+
     },
 
     /**
