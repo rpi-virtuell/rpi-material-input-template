@@ -542,8 +542,10 @@ RpiMaterialInputTemplate = {
 
     writeExcerpt: function (block) {
 
+        console.log('writeExcerpt', block);
+
         const parent_id = block.clientId;
-        var text = jQuery('#block-' + parent_id + ' .block-editor-inner-blocks').html().replace(/(<[^>]*>)/gi, '');
+        var text = jQuery('#block-' + parent_id + ' .block-editor-block-list__layout').html().replace(/(<[^>]*>)/gi, '');
         var post_id = wp.data.select('core/editor').getCurrentPost().id;
         wp.data.dispatch('core/editor').editPost({'id': post_id, 'excerpt': text});
 
