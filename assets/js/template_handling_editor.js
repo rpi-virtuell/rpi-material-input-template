@@ -148,8 +148,9 @@
 
                 wp.data.select("core/editor").getBlocks().forEach((b) => {
                     if (b.attributes.is_valid) {
+                        //$('#block-' + b.clientId + ' .lazyblock').addClass('is_valid');
                         //console.log('first fetch', b.attributes);
-                        $('#block-' + b.clientId + ' .lazyblock').addClass('is_valid');
+                        $('#block-' + b.clientId + ' .lzb-content-controls').addClass('is_valid');
                     }
                 });
             }
@@ -202,7 +203,8 @@
                         let targetBlock = editor.getBlock(editor.getBlockHierarchyRootClientId(currentBlock.clientId));
                         let target = document.getElementById('block-' + currentBlock.clientId);
                         if (target && targetBlock){
-                            //console.log('trigger typing');
+
+                            console.log('trigger typing');
                             if(RpiMaterialInputTemplate.is_watching ===false){
                                 RpiMaterialInputTemplate.watchTyping(currentBlock, targetBlock, target);
                             }
@@ -213,7 +215,7 @@
 
 
                     }
-                    console.log('typing', newTime, timer+3);
+
                     timer = time();
                 }
             }
@@ -390,17 +392,23 @@ RpiMaterialInputTemplate = {
 
         this.is_watching = true;
 
+        console.log('main_block',main_block);
+
         var parent_id = main_block.clientId;
 
         //$el = zugehöriger html block als jQuery Element
-        var $el = jQuery('#block-' + parent_id + ' .lazyblock');
+        //var $el = jQuery('#block-' + parent_id + '.lazyblock');
+        var $el = jQuery('#block-' + parent_id + ' .lzb-content-controls');
 
+        console.log($el);
 
         /**
          * Blockeingabe überprüfen und Fortschritt im übergeordneten Lazyblock anzeigen
          */
-
-        if (main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters > 0) {
+        if(main_block.attributes.is_valid && main_block.attributes.minimum_characters > 0){
+            $el.addClass('is_valid');
+        }else
+            if (main_block.attributes.minimum_characters && !main_block.attributes.is_valid && main_block.attributes.minimum_characters > 0) {
 
 
             //innerhalb des editierbaren bereiches prüfen
@@ -433,12 +441,12 @@ RpiMaterialInputTemplate = {
 
                 //ein div zum anzeigen eines Fortschrittbalkens am oberen Rand des Blocks hinzufügen
                 if (jQuery('#progress-' + parent_id).length === 0) {
-                    jQuery('<div id="progress-' + parent_id + '" class="block-progress" style=""></div>')
-                        .insertBefore($el);
+                    jQuery('<div id="progress-' + parent_id + '" class="block-progress" style="color:#ccc;font-size: xx-small;white-space: nowrap; margin-top: 20px;">Schreibe mindestens '+main_block.attributes.minimum_characters+' Zeichen</div>')
+                        .insertAfter($el);
                     jQuery('#progress-' + parent_id).animate({'width':'1%'},{'duration':20});
                 }
                 //jQuery('#progress-0d6f3a3d-65c8-4b53-8d70-0cdd380abe5c').animate({'width':"30%"},{'duration':5000});
-                jQuery('#progress-' + parent_id).css({'border-bottom': '6px solid #adff2f'});
+                jQuery('#progress-' + parent_id).css({'border-top': '6px solid #adff2f'});
                 jQuery('#progress-' + parent_id).animate({'width':+percent+'%'},{'duration':1000});
 
                 //Wenn 100% Fortschritt erreicht sind:

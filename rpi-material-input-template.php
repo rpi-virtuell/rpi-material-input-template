@@ -67,6 +67,7 @@ class RpiMaterialInputTemplate
         add_filter('rest_prepare_taxonomy', array($this, 'hide_taxonomy_metaboxes'), 10, 3);
 
         //placeholder for empty paragraphs -> need to change in css too
+
         add_filter('write_your_story', function (string $text, WP_Post $post) {
             if ($post->post_type == get_field('template_post_type', 'option')) {
                 return 'Tippe oder füge deine Inhalte hier ein. (Du kannst auch Dateien/Bilder hier her ziehen)';

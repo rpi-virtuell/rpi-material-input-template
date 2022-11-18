@@ -163,12 +163,24 @@ body,.editor-styles-wrapper {
 .lazyblock .rich-text [data-rich-text-placeholder]::after {
 
     content: 'Tippe oder füge deine Inhalte hier ein. (Du kannst auch Dateien/Bilder hier her ziehen)' !important;
-    opacity: .62;
+    opacity: .40!important;
+    font-size: smaller;
 
 }
-.lazyblock.is_valid{
-    /*box-shadow: 0 0 1px 1px greenyellow!important;*/
+.lazyblock .components-text-control__input::placeholder{
+
+    color: #bbb;
+
 }
+
+.lzb-content-controls.is_valid:before{
+    content:"✔️";
+    position: absolute;
+    top: -3px;
+    right: 1px;
+    text-align: right;
+}
+/*
 .lazyblock.is_valid:before{
     content:"✔️";
     position: absolute;
@@ -176,6 +188,7 @@ body,.editor-styles-wrapper {
     right: 1px;
     text-align: right;
 }
+*/
 .acf-field-toCheck:before{
     content:"Bitte ausfüllen";
     position: absolute;
