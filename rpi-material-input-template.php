@@ -29,6 +29,7 @@ class RpiMaterialInputTemplate
         add_action('init', array($this, 'force_create_material_with_form'));
         add_action('init', array($this, 'add_custom_taxonomies'));
         add_action('init', array($this, 'register_gravity_form'));
+        add_action('init', array($this, 'add_static_pages_to_access'));
         add_action('enqueue_block_assets', array($this, 'blockeditor_js'));
         add_action('admin_head', array($this, 'blockeditor_head_scripts'));
 
@@ -594,6 +595,11 @@ class RpiMaterialInputTemplate
         }
 
     }
+
+    public function add_static_pages_to_access(){
+
+    }
+
     public function prepare_anmeldung_form($form){
 
 
