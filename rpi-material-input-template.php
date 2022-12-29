@@ -674,7 +674,7 @@ class RpiMaterialInputTemplate
             if ($field->type != 'select') {
                 continue;
             }elseif ($field->adminLabel = "Bundesland"){
-                $field->defaultValue= get_user_meta(get_current_user_id(),'bundesland_id',false) ;
+                $field->defaultValue= get_user_meta(get_current_user_id(),'bundesland_id',true) ;
             }
         }
         return $form;
